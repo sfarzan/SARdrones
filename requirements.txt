@@ -1,0 +1,12 @@
+navpy
+geographiclib
+mavsdk
+asyncio
+pyfilter
+pandas
+pymavlink
+flask
+flask-cors
+psutil  
+scipy
+matplotlib

@@ -1,0 +1,99 @@
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 4rem; 
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+.drone-item:hover {
+  cursor: pointer; 
+}
+
+.drone-item li {
+  font-weight: bold;
+  margin-top: 5rem;
+  list-style: none;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+body {
+  font-family: 'Roboto', sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Montserrat', sans-serif;
+}
+
+.app-container {
+
+   /* margin-left: 10px; */
+  /* width: 82%; */
+}
+
+/* .content {
+  flex: 1;
+  padding: 2rem; 
+}
+
+@media (max-width: 600px) {
+  .app-container {
+    margin-left: 5%;
+    width: 90%; 
+  }
+} */
+
+
+/* Layout */
+.app-container {
+  display: flex;
+}
+
+.content {
+  flex: 1;
+  padding: 20px;
+}
+
+
+
+/* Menu items */
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+}
+
+/* Text contrast */  
+.text {
+  color: #333;
+}
