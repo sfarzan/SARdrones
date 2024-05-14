@@ -9,15 +9,28 @@ import numpy as np
 import requests
 from src.params import Params as params_
 from src.filter import KalmanFilter
+from enum import Enum
+
+class GCS_COMMAND(Enum):
+        IDLE = 0
+        DRONE_SHOW_FROM_CSV = 1
+        SMART_SWARM = 2
+        TAKE_OFF = 10
+        LAND = 101
+        HOLD = 102
+        TEST = 100
 
 class DroneConfig:
-    def __init__(self,drones, hw_id=None):
-        self.hw_id = self.get_hw_id(hw_id)
+    def __init__(self,drones, _hw_id=None):
+        if (_hw_id == None):
+            self.hw_id = self.get_hw_id(_hw_id)
+        else:
+            self.hw_id = _hw_id
         self.trigger_time = 0
         self.config = self.read_config()
         self.swarm = self.read_swarm()
         self.state = 0
-        self.pos_id = self.get_hw_id(hw_id)
+        self.pos_id = self.get_hw_id(_hw_id)
         self.mission = 0
         self.trigger_time = 0
         self.position = {'lat': 0, 'long': 0, 'alt': 0}
@@ -33,6 +46,8 @@ class DroneConfig:
         self.target_drone = None
         self.drones = drones
         self.kalman_filter = KalmanFilter() # New line
+        self.gcs_cmd = 'a'
+        self.gcs_cmd_ack = False
 
 
     def get_hw_id(self, hw_id=None):

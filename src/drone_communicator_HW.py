@@ -8,6 +8,7 @@ import select
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from src.drone_config import DroneConfig 
+from params import Params as params
 
 from pymavlink import mavutil
 
@@ -107,12 +108,6 @@ class DroneCommunicator_HW:
             if data.get_type() == 'SYS_STATUS':
                 self.set_drone_config(hw_id, None, None, None, None, None, None, None, data.voltage_battery, None)
 
-    
-    
-    
-    
-    
-    
     def process_packet(self, data):
         header, terminator = struct.unpack('BB', data[0:1] + data[-1:])
         
@@ -263,7 +258,8 @@ class DroneCommunicator_HW:
                 if (msg):
                     if (msg.get_type() == 'STATUSTEXT'):
                         # data = msg.text.decode('utf-8')
-                        print(f"ID: {msg.get_srcSystem()} text: {msg.text}")                  
+                        print(f"ID: {msg.get_srcSystem()} text: {msg.text}")  
+                        self.decode_status_text(msg.text, msg.get_srcSystem())                
                         # self.process_packet(data)
                     elif (msg.get_type() == 'UTM_GLOBAL_POSITION'):
                         print(f"ID: {msg.get_srcSystem()} LAT: {msg.lat / 1E7} deg LON: {msg.lon / 1E7} deg ALT: {msg.alt / 1E3} m")
@@ -272,6 +268,18 @@ class DroneCommunicator_HW:
                     #     print(f"ID: {msg.get_srcSystem()} heading: {msg.heading}")
             if self.drone_config.mission == 2 and self.drone_config.state != 0 and int(self.drone_config.swarm.get('follow')) != 0:
                     self.drone_config.calculate_setpoints()
+
+    def decode_status_text(self, text, sys_id):
+        components = text.split(" ")
+        if sys_id == 14:
+            return None
+        if sys_id == 24:
+            return None
+        if sys_id == 34:
+            return None
+        codes = [int(components) for component in components if component.isdigit()]
+        print(sys_id)
+        print(codes)
 
     def start_communication(self):
         self.telemetry_thread = threading.Thread(target=self.send_drone_state)
@@ -284,4 +292,19 @@ class DroneCommunicator_HW:
         self.telemetry_thread.join()
         self.command_thread.join()
         self.executor.shutdown()
+
+    def drone_ack(self, cmd, msn):
+        # add code here or modification to send an ack. Also, before this runs, coordinator should enter idle mode or
+        test1 = "cmd " + str(cmd) + " ack 1 msn " + str(msn)
+        count = 0
+        
+        msg1 = mavutil.mavlink.MAVLink_statustext_message(
+            mavutil.mavlink.MAV_SEVERITY_INFO, 
+            test1.encode("utf-8")
+            # packet[0:40]
+        )
+        # print(len(packet))
+        for i in range(10):
+            self.master.mav.send(msg1)
+            time.sleep(1)
 

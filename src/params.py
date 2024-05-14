@@ -66,16 +66,17 @@ import os
 from enum import Enum
 
 def read_hw_id():
-    return 2
-    # hwid_files = glob.glob('*.hwID')
-    # if hwid_files:
-    #     filename = hwid_files[0]
-    #     print(filename)
-    #     hw_id = os.path.splitext(filename)[0]  # Get filename without extension
-    #     return int(hw_id)
-    # else:
-    #     print("Params: Hardware ID file not found.")
-    #     return None
+    hwid_files = glob.glob('**/*.hwID', recursive=True)
+
+    # Print each file path and filename
+    for file_path in hwid_files:
+        filename = os.path.basename(file_path)
+        print("File path:", file_path)
+        print("Filename:", filename)
+        hw_id = int(os.path.splitext(filename)[0])  # Get filename without extension
+        print(hw_id)
+        return hw_id
+    return None
 
 class Params():
 
