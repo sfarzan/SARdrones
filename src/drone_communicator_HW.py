@@ -20,6 +20,8 @@ class DroneCommunicator_HW:
         self.stop_flag = threading.Event()
         self.nodes = None
         self.executor = ThreadPoolExecutor(max_workers=10)
+        self.systemID = drone_config.hw_id * 10 + 5
+        print(f"coordinator Sys ID: {self.systemID}")
 
 
     def init_mavlink_comms(self):
