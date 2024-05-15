@@ -170,7 +170,15 @@ import os
 def main():
     print("me")
 
-    hwid_files = glob.glob('**/*.hwID', recursive=True)
+    # hwid_files = glob.glob('**/*.hwID', recursive=True)
+    current_directory = os.getcwd()
+
+    # Get the grandparent directory path
+    grandparent_directory = os.path.abspath(os.path.join(current_directory, os.pardir, os.pardir))
+
+    # Search for files with the extension ".hwID" in the grandparent directory recursively
+    hwid_files = glob.glob(os.path.join(grandparent_directory, '**/*.hwID'), recursive=True)
+
 
     # Print each file path and filename
     for file_path in hwid_files:

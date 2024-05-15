@@ -66,15 +66,21 @@ import os
 from enum import Enum
 
 def read_hw_id():
-    hwid_files = glob.glob('**/*.hwID', recursive=True)
+    current_directory = os.getcwd()
+
+    # Get the grandparent directory path
+    grandparent_directory = os.path.abspath(os.path.join(current_directory, os.pardir, os.pardir))
+
+    # Search for files with the extension ".hwID" in the grandparent directory recursively
+    hwid_files = glob.glob(os.path.join(grandparent_directory, '**/*.hwID'), recursive=True)
 
     # Print each file path and filename
     for file_path in hwid_files:
         filename = os.path.basename(file_path)
-        print("File path:", file_path)
-        print("Filename:", filename)
+        # print("File path:", file_path)
+        # print("Filename:", filename)
         hw_id = int(os.path.splitext(filename)[0])  # Get filename without extension
-        print(hw_id)
+        # print(hw_id)
         return hw_id
     return None
 
@@ -95,18 +101,22 @@ class Params():
                 
     # CONFIGURES PORT NUMBERS BASED ON HW_ID IF SIM_MODE IS TRUE    
     hw_id = read_hw_id()
-    if sim_mode == True:
-        sitl_port = 14540 + hw_id  # SIM SITL port - Used for Recieving Mavlink from SIM
-        mavsdk_port = 14550 + hw_id # SIM MAVSDK port - Recieves forwarded Mavlink - Interface for MAVSDK Commands
-        local_mavlink_port = 12550 + hw_id  # Local Mavlink port - Used to Display Mavlink Data to Terminal
-        grpc_port = 50050 + hw_id # Default GRPC Port - Used for Offboard Control
+    if (hw_id is not None):
+        print("hw_id not none")
+        if sim_mode == True:
+            sitl_port = 14540 + hw_id  # SIM SITL port - Used for Recieving Mavlink from SIM
+            mavsdk_port = 14550 + hw_id # SIM MAVSDK port - Recieves forwarded Mavlink - Interface for MAVSDK Commands
+            local_mavlink_port = 12550 + hw_id  # Local Mavlink port - Used to Display Mavlink Data to Terminal
+            grpc_port = 50050 + hw_id # Default GRPC Port - Used for Offboard Control
+        else:
+            sitl_port = 14540  # Default SITL port
+            mavsdk_port = 14550 + hw_id # Default MAVSDK port
+            local_mavlink_port = 12550 + hw_id # Default Local Mavlink port
+            grpc_port = 50050 # Default GRPC Port
+            # comms_port = 13540 + hw_id # Port for Pymavlink Status Messages to be Sent (HW_ID, telemetry, RSSI Values)
+            comms_port = 14540 # Port for Pymavlink Status Messages to be Sent (HW_ID, telemetry, RSSI Values)
     else:
-        sitl_port = 14540  # Default SITL port
-        mavsdk_port = 14550 + hw_id # Default MAVSDK port
-        local_mavlink_port = 12550 + hw_id # Default Local Mavlink port
-        grpc_port = 50050 # Default GRPC Port
-        comms_port = 13540 + hw_id # Port for Pymavlink Status Messages to be Sent (HW_ID, telemetry, RSSI Values)
-
+        quit()
     shared_gcs_port = True
     #extra_devices = [f"127.0.0.1:{local_mavlink_port}", "192.168.189.1:14550"]  # List of extra devices (IP:Port) to route Mavlink
     extra_devices = [f"127.0.0.1:{local_mavlink_port}"]

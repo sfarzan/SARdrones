@@ -8,25 +8,25 @@ import select
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from src.drone_config import DroneConfig 
-from params import Params as params
+from src.params import Params as params
 
 from pymavlink import mavutil
 
 class DroneCommunicator_HW:
-    def __init__(self, drone_config, params, drones):
+    def __init__(self, drone_config, param, drones):
         self.drone_config = drone_config
-        self.params = params
+        self.params = param
         self.drones = drones
         self.stop_flag = threading.Event()
         self.nodes = None
         self.executor = ThreadPoolExecutor(max_workers=10)
         self.systemID = drone_config.hw_id * 10 + 5
-        print(f"coordinator Sys ID: {self.systemID}")
+        # print(f"coordinator Sys ID: {self.systemID}")
 
 
     def init_mavlink_comms(self):
         # Init Mavlink Connection
-        self.master = mavutil.mavlink_connection(f'udp:localhost:{self.params.comms_port}', source_system=any)
+        self.master = mavutil.mavlink_connection(f'udp:localhost:{self.params.comms_port}', source_system=self.systemID)
         print(f"Comms: Waiting for Heartbeat at udp:localhost:{self.params.comms_port}")
         self.master.wait_heartbeat()
         print(f'Comms: Heartbeat from system (system {self.master.target_system} component {self.master.target_system})')

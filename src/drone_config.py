@@ -10,6 +10,7 @@ import requests
 from src.params import Params as params_
 from src.filter import KalmanFilter
 from enum import Enum
+import os
 
 class GCS_COMMAND(Enum):
         IDLE = 0
@@ -54,11 +55,14 @@ class DroneConfig:
         if hw_id is not None:
             return hw_id
 
-        hw_id_files = glob.glob("*.hwID")
+        current_directory = os.getcwd()
+        grandparent_directory = os.path.abspath(os.path.join(current_directory, os.pardir, os.pardir))
+        hw_id_files = glob.glob(os.path.join(grandparent_directory, '**/*.hwID'), recursive=True)
+
         if hw_id_files:
-            hw_id_file = hw_id_files[0]
+            hw_id_file = os.path.basename(hw_id_files[0])
             print(f"Hardware ID file found: {hw_id_file}")
-            hw_id = hw_id_file.split(".")[0]
+            hw_id = int(hw_id_file.split(".")[0])
             print(f"Hardware ID: {hw_id}")
             return hw_id
         else:
