@@ -49,6 +49,7 @@ class DroneConfig:
         self.kalman_filter = KalmanFilter() # New line
         self.gcs_cmd = 'a'
         self.gcs_cmd_ack = False
+        self.rssi = None
 
 
     def get_hw_id(self, hw_id=None):

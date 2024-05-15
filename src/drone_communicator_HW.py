@@ -9,6 +9,7 @@ import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from src.drone_config import DroneConfig 
 from src.params import Params as params
+import serial
 
 from pymavlink import mavutil
 
@@ -21,6 +22,8 @@ class DroneCommunicator_HW:
         self.nodes = None
         self.executor = ThreadPoolExecutor(max_workers=10)
         self.systemID = drone_config.hw_id * 10 + 5
+        self.ser = serial.Serial('/dev/ttyS0', baudrate = 115200)
+        # self.kf = KalmanFilter(processNoise, measurementNoise)
         # print(f"coordinator Sys ID: {self.systemID}")
 
 
@@ -63,12 +66,14 @@ class DroneCommunicator_HW:
             self.nodes = list(csv.DictReader(file))  # modify this line
         return self.nodes
 
-    def set_drone_config(self, hw_id, pos_id, state, mission, trigger_time, position, velocity, yaw, battery, last_update_timestamp):
+    def set_drone_config(self, hw_id, pos_id, state, mission, trigger_time, position, velocity, yaw, battery, last_update_timestamp, rssi):
         drone = self.drones.get(hw_id)
         if pos_id is not None:
             drone.pos_id = pos_id
         if state is not None:
             drone.state = state
+        else:
+            drone.state = 0
         if mission is not None:
             drone.mission = mission
         if trigger_time is not None:
@@ -83,11 +88,15 @@ class DroneCommunicator_HW:
             drone.battery = battery
         if last_update_timestamp is not None:
             drone.last_update_timestamp = last_update_timestamp
+        if rssi is not None:
+            drone.rssi = rssi
         self.drones[hw_id] = drone
 
     def update_state(self, data):
-        # Ensures Drone_config object will contain position information - Also helps to filter out non-drone systems
-        if data.get_type() == 'UTM_GLOBAL_POSITION':
+        print("HERE")
+        msg_type = data.get_type()
+        if msg_type == "STATUSTEXT" or msg_type == "UTM_GLOBAL_POSITION" or msg_type == "ATTITUDE" or msg_type == "SYS_STATUS":
+            # Ensures Drone_config object will contain position information - Also helps to filter out non-drone systems
             hw_id = data.get_srcSystem()
             logging.debug(f"Received telemetry from Drone {hw_id}")
 
@@ -96,19 +105,25 @@ class DroneCommunicator_HW:
                 logging.info(f"Receiving Telemetry from NEW Drone ID= {hw_id}")
                 self.drones[hw_id] = DroneConfig(self.drones, hw_id)
 
+            # Update RSSI Values
+            if msg_type == 'STATUSTEXT':
+                split_string = data.text.split()
+                if split_string[0] == 'RSSI':
+                    self.set_drone_config(None, None, None, None, None, None, None, None, None, None, split_string[1])
+
             # Update Position and Velocity Values
-            if data.get_type() == 'UTM_GLOBAL_POSITION':
+            if msg_type == 'UTM_GLOBAL_POSITION':
                 position = {'lat': data.lat / 1E7, 'long': data.lon / 1E7, 'alt': data.alt / 1E7}
                 velocity = {'north': data.vx, 'east': data.vy, 'down': data.vz}
-                self.set_drone_config(hw_id, None, None, None, None, position, velocity, None, None, data.time)
+                self.set_drone_config(hw_id, None, None, None, None, position, velocity, None, None, data.time, None)
             
             # Update Yaw Values
-            if data.get_type() == 'ATTITUDE':
-                self.set_drone_config(hw_id, None, None, None, None, None, None, data.yaw, None, None)
+            if msg_type == 'ATTITUDE':
+                self.set_drone_config(hw_id, None, None, None, None, None, None, data.yaw, None, None, None)
 
             # Update Battery Values
-            if data.get_type() == 'SYS_STATUS':
-                self.set_drone_config(hw_id, None, None, None, None, None, None, None, data.voltage_battery, None)
+            if msg_type == 'SYS_STATUS':
+                self.set_drone_config(hw_id, None, None, None, None, None, None, None, data.voltage_battery, None, None)
 
     def process_packet(self, data):
         header, terminator = struct.unpack('BB', data[0:1] + data[-1:])
@@ -207,7 +222,8 @@ class DroneCommunicator_HW:
         "yaw": self.drone_config.yaw,
         "battery_voltage": self.drone_config.battery,
         "follow_mode": int(self.drone_config.swarm['follow']),
-        "update_time": int(self.drone_config.last_update_timestamp)
+        "update_time": int(self.drone_config.last_update_timestamp),
+        "RSSI": self.drone_config.rssi
         }
 
         return drone_state
@@ -256,7 +272,6 @@ class DroneCommunicator_HW:
             ready = select.select([self.master.fd], [], [], self.params.income_packet_check_interval)
             if ready[0]:
                 msg = self.master.recv_match()
-                self.update_state(msg)
                 if (msg):
                     if (msg.get_type() == 'STATUSTEXT'):
                         # data = msg.text.decode('utf-8')
@@ -268,6 +283,25 @@ class DroneCommunicator_HW:
                     #     print(f"VE: {msg.vx} VN: {msg.vy} VD: {msg.vz}")
                     # elif (msg.get_type() == 'VFR_HUD'):
                     #     print(f"ID: {msg.get_srcSystem()} heading: {msg.heading}")
+                if self.ser.is_open:
+                    # decode the message        
+                    data_message = self.ser.readline().decode('utf-8').strip() # this is the message
+                    if data_message:
+                        data_message_filter = data_message.split(',')
+                        rssiVal = data_message_filter[-2]
+                        self.drone_config.rssi = rssiVal
+                        
+                        print(f"rssi value {rssiVal}")
+                        rssi_tosend = f"RSSI {rssiVal}"
+                        self.master.mav.statustext_send(
+                            mavutil.mavlink.MAV_SEVERITY_INFO,
+                            rssi_tosend.encode('utf-8')
+                        )
+                        # KF_rssi = self.kf.filter(rssiVal)
+                        # KF_var = self.kf.get_cov()
+                self.update_state(msg)
+
+
             if self.drone_config.mission == 2 and self.drone_config.state != 0 and int(self.drone_config.swarm.get('follow')) != 0:
                     self.drone_config.calculate_setpoints()
 
@@ -284,9 +318,9 @@ class DroneCommunicator_HW:
         print(codes)
 
     def start_communication(self):
-        self.telemetry_thread = threading.Thread(target=self.send_drone_state)
+        # self.telemetry_thread = threading.Thread(target=self.send_drone_state)
         self.command_thread = threading.Thread(target=self.read_packets)
-        self.telemetry_thread.start()
+        # self.telemetry_thread.start()
         self.command_thread.start()
 
     def stop_communication(self):
