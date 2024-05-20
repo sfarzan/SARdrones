@@ -93,7 +93,6 @@ class DroneCommunicator_HW:
         self.drones[hw_id] = drone
 
     def update_state(self, data):
-        print("HERE")
         msg_type = data.get_type()
         if msg_type == "STATUSTEXT" or msg_type == "UTM_GLOBAL_POSITION" or msg_type == "ATTITUDE" or msg_type == "SYS_STATUS":
             # Ensures Drone_config object will contain position information - Also helps to filter out non-drone systems
@@ -230,40 +229,24 @@ class DroneCommunicator_HW:
 
 
     def send_drone_state(self):
-
         while not self.stop_flag.is_set():
-            drone_state = self.get_drone_state()
-
-            # Create a struct format string based on the data types
-            telem_struct_fmt = '=BHHBBIddddddddBIB'  # update this to match your data types
-            packet = struct.pack(telem_struct_fmt,
-                                    77,
-                                    drone_state['hw_id'],
-                                    drone_state['pos_id'],
-                                    drone_state['state'],
-                                    drone_state['mission'],
-                                    drone_state['trigger_time'],
-                                    drone_state['position_lat'],
-                                    drone_state['position_long'],
-                                    drone_state['position_alt'],
-                                    drone_state['velocity_north'],
-                                    drone_state['velocity_east'],
-                                    drone_state['velocity_down'],
-                                    drone_state['yaw'],
-                                    drone_state['battery_voltage'],
-                                    drone_state['follow_mode'],
-                                    drone_state['update_time'],
-                                    88)
-            telem_packet_size = len(packet)
-
-            # If broadcast_mode is True, send to all nodes
-            if self.params.broadcast_mode:
-                nodes = self.get_nodes()
-                for node in nodes:
-                    if int(node["hw_id"]) != drone_state['hw_id']:
-                        future = self.executor.submit(self.send_telem, packet)
-            # Always send to GCS
-            self.executor.submit(self.send_telem, packet)
+            # Get RSSI Data From LoRa and Send via STATUSTEXT
+            if self.ser.is_open:
+                    # decode the message        
+                    data_message = self.ser.readline().decode('utf-8').strip() # this is the message
+                    if data_message:
+                        data_message_filter = data_message.split(',')
+                        rssiVal = data_message_filter[-2]
+                        self.drone_config.rssi = rssiVal
+                        
+                        print(f"rssi value {self.drone_config.rssi}")
+                        rssi_tosend = f"RSSI { self.drone_config.rssi}"
+                        self.master.mav.statustext_send(
+                            mavutil.mavlink.MAV_SEVERITY_INFO,
+                            rssi_tosend.encode('utf-8')
+                        )
+                        # KF_rssi = self.kf.filter(rssiVal)
+                        # KF_var = self.kf.get_cov()
 
             time.sleep(self.params.TELEM_SEND_INTERVAL)
         
@@ -283,22 +266,6 @@ class DroneCommunicator_HW:
                     #     print(f"VE: {msg.vx} VN: {msg.vy} VD: {msg.vz}")
                     # elif (msg.get_type() == 'VFR_HUD'):
                     #     print(f"ID: {msg.get_srcSystem()} heading: {msg.heading}")
-                if self.ser.is_open:
-                    # decode the message        
-                    data_message = self.ser.readline().decode('utf-8').strip() # this is the message
-                    if data_message:
-                        data_message_filter = data_message.split(',')
-                        rssiVal = data_message_filter[-2]
-                        self.drone_config.rssi = rssiVal
-                        
-                        print(f"rssi value {rssiVal}")
-                        rssi_tosend = f"RSSI {rssiVal}"
-                        self.master.mav.statustext_send(
-                            mavutil.mavlink.MAV_SEVERITY_INFO,
-                            rssi_tosend.encode('utf-8')
-                        )
-                        # KF_rssi = self.kf.filter(rssiVal)
-                        # KF_var = self.kf.get_cov()
                 self.update_state(msg)
 
 
@@ -318,9 +285,9 @@ class DroneCommunicator_HW:
         print(codes)
 
     def start_communication(self):
-        # self.telemetry_thread = threading.Thread(target=self.send_drone_state)
+        self.telemetry_thread = threading.Thread(target=self.send_drone_state)
         self.command_thread = threading.Thread(target=self.read_packets)
-        # self.telemetry_thread.start()
+        self.telemetry_thread.start()
         self.command_thread.start()
 
     def stop_communication(self):
