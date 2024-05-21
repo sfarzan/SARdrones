@@ -205,27 +205,30 @@ class DroneCommunicator_HW:
             return
         
     # Fetches the current state of the drone
-    def get_drone_state(self):
-        drone_state = {
-        "hw_id": int(self.drone_config.hw_id),
-        "pos_id": int(self.drone_config.config['pos_id']),
-        "state": int(self.drone_config.state),
-        "mission": int(self.drone_config.mission),
-        "trigger_time": int(self.drone_config.trigger_time),
-        "position_lat": self.drone_config.position['lat'],
-        "position_long": self.drone_config.position['long'],
-        "position_alt": self.drone_config.position['alt'],
-        "velocity_north": self.drone_config.velocity['north'],
-        "velocity_east": self.drone_config.velocity['east'],
-        "velocity_down": self.drone_config.velocity['down'],
-        "yaw": self.drone_config.yaw,
-        "battery_voltage": self.drone_config.battery,
-        "follow_mode": int(self.drone_config.swarm['follow']),
-        "update_time": int(self.drone_config.last_update_timestamp),
-        "RSSI": self.drone_config.rssi
-        }
+    def get_drone_state(self, hw_id):
+        drone = self.drones.get(hw_id)
+        if drone is not None:
+            drone_state = {
+            "hw_id": int(drone.hw_id),
+            "pos_id": int(drone.pos_id),
+            "state": int(drone.state),
+            "mission": int(drone.mission),
+            "trigger_time": int(drone.trigger_time),
+            "position_lat": drone.position['lat'],
+            "position_long": drone.position['long'],
+            "position_alt": drone.position['alt'],
+            "velocity_north": drone.velocity['north'],
+            "velocity_east": drone.velocity['east'],
+            "velocity_down": drone.velocity['down'],
+            "yaw": drone.yaw,
+            "battery_voltage": drone.battery,
+            # "follow_mode": int(drone.swarm['follow']),
+            # "update_time": int(drone.last_update_timestamp),
+            "RSSI": drone.rssi
+            }
+            print(drone_state)
 
-        return drone_state
+            return drone_state
 
 
     def send_drone_state(self):
@@ -256,16 +259,17 @@ class DroneCommunicator_HW:
             if ready[0]:
                 msg = self.master.recv_match()
                 if (msg):
-                    if (msg.get_type() == 'STATUSTEXT'):
-                        # data = msg.text.decode('utf-8')
-                        print(f"ID: {msg.get_srcSystem()} text: {msg.text}")  
-                        self.decode_status_text(msg.text, msg.get_srcSystem())                
-                        # self.process_packet(data)
-                    elif (msg.get_type() == 'UTM_GLOBAL_POSITION'):
-                        print(f"ID: {msg.get_srcSystem()} LAT: {msg.lat / 1E7} deg LON: {msg.lon / 1E7} deg ALT: {msg.alt / 1E3} m")
+                    # if (msg.get_type() == 'STATUSTEXT'):
+                    #     # data = msg.text.decode('utf-8')
+                    #     print(f"ID: {msg.get_srcSystem()} text: {msg.text}")  
+                    #     self.decode_status_text(msg.text, msg.get_srcSystem())                
+                    #     # self.process_packet(data)
+                    # elif (msg.get_type() == 'UTM_GLOBAL_POSITION'):
+                    #     print(f"ID: {msg.get_srcSystem()} LAT: {msg.lat / 1E7} deg LON: {msg.lon / 1E7} deg ALT: {msg.alt / 1E3} m")
                     #     print(f"VE: {msg.vx} VN: {msg.vy} VD: {msg.vz}")
                     # elif (msg.get_type() == 'VFR_HUD'):
                     #     print(f"ID: {msg.get_srcSystem()} heading: {msg.heading}")
+                    self.get_drone_state(2)
                 self.update_state(msg)
 
 
