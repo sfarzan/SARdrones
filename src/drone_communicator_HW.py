@@ -232,7 +232,9 @@ class DroneCommunicator_HW:
 
 
     def send_drone_state(self):
+        print("HERE")
         while not self.stop_flag.is_set():
+            # self.get_drone_state(2)
             # Get RSSI Data From LoRa and Send via STATUSTEXT
             if self.ser.is_open:
                     # decode the message        
@@ -258,18 +260,7 @@ class DroneCommunicator_HW:
             ready = select.select([self.master.fd], [], [], self.params.income_packet_check_interval)
             if ready[0]:
                 msg = self.master.recv_match()
-                if (msg):
-                    # if (msg.get_type() == 'STATUSTEXT'):
-                    #     # data = msg.text.decode('utf-8')
-                    #     print(f"ID: {msg.get_srcSystem()} text: {msg.text}")  
-                    #     self.decode_status_text(msg.text, msg.get_srcSystem())                
-                    #     # self.process_packet(data)
-                    # elif (msg.get_type() == 'UTM_GLOBAL_POSITION'):
-                    #     print(f"ID: {msg.get_srcSystem()} LAT: {msg.lat / 1E7} deg LON: {msg.lon / 1E7} deg ALT: {msg.alt / 1E3} m")
-                    #     print(f"VE: {msg.vx} VN: {msg.vy} VD: {msg.vz}")
-                    # elif (msg.get_type() == 'VFR_HUD'):
-                    #     print(f"ID: {msg.get_srcSystem()} heading: {msg.heading}")
-                    self.get_drone_state(2)
+                
                 self.update_state(msg)
 
 
