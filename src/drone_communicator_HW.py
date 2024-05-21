@@ -72,8 +72,6 @@ class DroneCommunicator_HW:
             drone.pos_id = pos_id
         if state is not None:
             drone.state = state
-        else:
-            drone.state = 0
         if mission is not None:
             drone.mission = mission
         if trigger_time is not None:
