@@ -95,6 +95,7 @@ class DroneCommunicator_HW:
         self.drones[hw_id] = drone
 
     def update_state(self, data):
+    
         msg_type = data.get_type()
         if msg_type == "STATUSTEXT" or msg_type == "UTM_GLOBAL_POSITION" or msg_type == "ATTITUDE" or msg_type == "SYS_STATUS":
             # Ensures Drone_config object will contain position information - Also helps to filter out non-drone systems
@@ -103,14 +104,20 @@ class DroneCommunicator_HW:
 
             # Create a new instance for the drone if not present
             if hw_id not in self.drones:
-                logging.info(f"Receiving Telemetry from NEW Drone ID= {hw_id}")
-                self.drones[hw_id] = DroneConfig(self.drones, hw_id)
+                print(self.drone_config.hw_id)
+                if hw_id == self.drone_config.hw_id:
+                    self.drones[hw_id] = self.drone_config
+                else:
+                    logging.info(f"Receiving Telemetry from NEW Drone ID= {hw_id}")
+                    self.drones[hw_id] = DroneConfig(self.drones, hw_id)
 
             # Update RSSI Values
             if msg_type == 'STATUSTEXT':
+                print("mesg type is status")
                 split_string = data.text.split()
                 if split_string[0] == 'RSSI':
                     self.set_drone_config(None, None, None, None, None, None, None, None, None, None, split_string[1])
+                    print(f"rssi being updated through status message {split_string[1]}")
 
             # Update Position and Velocity Values
             if msg_type == 'UTM_GLOBAL_POSITION':
@@ -255,6 +262,8 @@ class DroneCommunicator_HW:
                     rssiVal = int(data_message_filter[-2])
              
                     self.drone_config.rssi = self.kf.filter(rssiVal) # put kf filter 
+                    # config = self.drones.get(self.drone_config.hw_id)
+                    # config.rssi  = self.kf.filter(rssiVal)
                     print(self.drone_config.rssi)
                     
                     #print(f"rssi value {self.drone_config.rssi}")
