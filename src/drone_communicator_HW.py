@@ -220,7 +220,7 @@ class DroneCommunicator_HW:
             "velocity_down": drone.velocity['down'],
             "yaw": drone.yaw,
             "battery_voltage": drone.battery,
-            # "follow_mode": int(drone.swarm['follow']),
+            "follow_mode": int(drone.swarm['follow']),
             # "update_time": int(drone.last_update_timestamp),
             "RSSI": drone.rssi
             }
@@ -230,26 +230,24 @@ class DroneCommunicator_HW:
 
 
     def send_drone_state(self):
-        print("HERE")
         while not self.stop_flag.is_set():
-            # self.get_drone_state(2)
             # Get RSSI Data From LoRa and Send via STATUSTEXT
             if self.ser.is_open:
-                    # decode the message        
-                    data_message = self.ser.readline().decode('utf-8').strip() # this is the message
-                    if data_message:
-                        data_message_filter = data_message.split(',')
-                        rssiVal = data_message_filter[-2]
-                        self.drone_config.rssi = rssiVal
-                        
-                        print(f"rssi value {self.drone_config.rssi}")
-                        rssi_tosend = f"RSSI { self.drone_config.rssi}"
-                        self.master.mav.statustext_send(
-                            mavutil.mavlink.MAV_SEVERITY_INFO,
-                            rssi_tosend.encode('utf-8')
-                        )
-                        # KF_rssi = self.kf.filter(rssiVal)
-                        # KF_var = self.kf.get_cov()
+                # decode the message        
+                data_message = self.ser.readline().decode('utf-8').strip() # this is the message
+                if data_message:
+                    data_message_filter = data_message.split(',')
+                    rssiVal = data_message_filter[-2]
+                    self.drone_config.rssi = rssiVal
+                    
+                    print(f"rssi value {self.drone_config.rssi}")
+                    rssi_tosend = f"RSSI { self.drone_config.rssi}"
+                    self.master.mav.statustext_send(
+                        mavutil.mavlink.MAV_SEVERITY_INFO,
+                        rssi_tosend.encode('utf-8')
+                    )
+                    # KF_rssi = self.kf.filter(rssiVal)
+                    # KF_var = self.kf.get_cov()
 
             time.sleep(self.params.TELEM_SEND_INTERVAL)
         
@@ -258,8 +256,9 @@ class DroneCommunicator_HW:
             ready = select.select([self.master.fd], [], [], self.params.income_packet_check_interval)
             if ready[0]:
                 msg = self.master.recv_match()
-                
-                self.update_state(msg)
+                if (msg):
+                    self.update_state(msg)
+                    self.get_drone_state(2)
 
 
             if self.drone_config.mission == 2 and self.drone_config.state != 0 and int(self.drone_config.swarm.get('follow')) != 0:

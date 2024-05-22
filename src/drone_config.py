@@ -131,7 +131,6 @@ class DroneConfig:
                 print(f"Failed to load online swarm configuration: {e}")
         
         print("Swarm configuration not found.")
-        return None
     
     def find_target_drone(self):
         # find which drone it should follow
