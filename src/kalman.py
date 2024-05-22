@@ -57,8 +57,11 @@ class KalmanFilter_rssi:
             predX = (self.A * self.x) + (self.B * u)
             predCov = ((self.A * self.cov) * self.A) + self.R
 
+            denominator = (self.C * predCov * self.C) + self.Q
+            if denominator == 0:
+                denominator += 1e-10
             # Kalman Gain
-            K = predCov * self.C * (1 / ((self.C * predCov * self.C) + self.Q));
+            K = predCov * self.C * (1 / (denominator));
 
             # Correction
             self.x = predX + K * (measurement - (self.C * predX));

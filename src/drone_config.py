@@ -75,7 +75,7 @@ class DroneConfig:
             reader = csv.DictReader(csvfile)
             for row in reader:
                 if int(row['hw_id']) == int(hw_id):
-                    print(f"Configuration for HW_ID {hw_id} found in {source}.")
+                    # print(f"Configuration for HW_ID {hw_id} found in {source}.")
                     return row
         return None
 

@@ -12,7 +12,7 @@ from src.params import Params as params
 import serial
 import numpy as np
 import math
-from kalman import KalmanFilter_rssi
+from src.kalman import KalmanFilter_rssi
 from pymavlink import mavutil
 
 processNoise = 0
@@ -153,15 +153,18 @@ class DroneCommunicator_HW:
             drone_state = self.drones.get(hw_id)
 
             # Store the lat, lon, and RSSI in a list
-
-            drone_coords.append((drone_state["position_lat"], drone_state["position_lon"]))
-            drone_rssi.append(drone_state["RSSI"])
-
+            if drone_state != None:
+                print(drone_state)
+                drone_coords.append((drone_state.position['lat'], drone_state.position['long']))
+                drone_rssi.append(drone_state.rssi)
+                print(drone_state.rssi) # not accessing correctly
+                print(f"coord {drone_coords} rssi : {drone_rssi}")
         # get the vectors
-        vectors = self.direction_vectors(drone_coords, drone_rssi)
-        estimate_heading = self.estimate_direction(vectors)
-        self.leader_wavpoint(estimate_heading, array_hw_id)
-        return estimate_heading
+                vectors = self.direction_vectors(drone_coords, drone_rssi)
+                estimate_heading = self.estimate_direction(vectors)
+                print(f"estimate heading {estimate_heading}")
+                self.calculate_new_waypoint(0, 0, estimate_heading, 40)
+                return estimate_heading
 
     
     # Function to calculate heading from one point to another
@@ -193,7 +196,7 @@ class DroneCommunicator_HW:
         estimated_heading = np.degrees(np.arctan2(y, x))
         return estimated_heading
 
-    def calculate_new_waypoint(lat, lon, heading, distance_meters):
+    def calculate_new_waypoint(self, lat, lon, heading, distance_meters):
         
         # Convert latitude and heading to radians
         # did some testing in google map, resolution seems doable
@@ -242,17 +245,19 @@ class DroneCommunicator_HW:
 
     def send_drone_state(self):
         while not self.stop_flag.is_set():
+            self.get_drone_coords([24])
             # Get RSSI Data From LoRa and Send via STATUSTEXT
             if self.ser.is_open:
                 # decode the message        
                 data_message = self.ser.readline().decode('utf-8').strip() # this is the message
                 if data_message:
                     data_message_filter = data_message.split(',')
-                    rssiVal = data_message_filter[-2]
-                    rssiVal_filtered = self.kf.filter(rssiVal)
-                    self.drone_config.rssi = rssiVal_filtered
+                    rssiVal = int(data_message_filter[-2])
+             
+                    self.drone_config.rssi = self.kf.filter(rssiVal) # put kf filter 
+                    print(self.drone_config.rssi)
                     
-                    print(f"rssi value {self.drone_config.rssi}")
+                    #print(f"rssi value {self.drone_config.rssi}")
                     rssi_tosend = f"RSSI { self.drone_config.rssi}"
                     self.master.mav.statustext_send(
                         mavutil.mavlink.MAV_SEVERITY_INFO,
