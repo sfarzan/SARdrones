@@ -10,8 +10,10 @@ from concurrent.futures import ThreadPoolExecutor
 from src.drone_config import DroneConfig 
 from src.params import Params as params
 import serial
+import numpy as np
 
 from pymavlink import mavutil
+
 
 class DroneCommunicator_HW:
     def __init__(self, drone_config, param, drones):
@@ -201,8 +203,57 @@ class DroneCommunicator_HW:
             print(msg)
         else:
             return
-        
+    def get_drone_coords(self, array_hw_id):
+       # this function gets all the telemetry and rssi data from the drones
+       # it returns a dictionary, which has lat, lon, rssi in a listed
+        drone_coords = []
+        drone_rssi = []
+
+        for hw_id in array_hw_id:
+# Get drone state based off hw_id
+            drone_state = self.drones.get(hw_id)
+
+# Store the lat, lon, and RSSI in a list
+
+            drone_coords.append((drone_state["position_lat"], drone_state["position_lon"]))
+            drone_rssi.append(drone_state["RSSI"])
+
+        # get the vectors
+        vectors = self.direction_vectors(drone_coords, drone_rssi)
+        estimate_heading = self.estimate_direction(vectors)
+        return estimate_heading
+
+    
+    # Function to calculate heading from one point to another
+    def calculate_heading(lat1, lon1, lat2, lon2):
+        delta_lon = lon2 - lon1
+        delta_lat = lat2 - lat1
+        heading = np.degrees(np.arctan2(delta_lon, delta_lat))
+        return heading
+
+    def direction_vectors(drone_coords, rssi_values):
+        vectors = []
+        for i in range(len(drone_coords)):
+            for j in range(len(drone_coords)):
+                if i != j:
+                    lat1, lon1 = drone_coords[i]
+                    lat2, lon2 = drone_coords[j]
+                    rssi_diff = rssi_values[i] - rssi_values[j]
+                    weight = np.abs(rssi_diff)
+                    heading = calculate_heading(lat1, lon1, lat2, lon2)
+                    vectors.append((heading, weight))
+        return vectors
+
+    def estimate_direction(vectors):
+        x, y = 0, 0
+        for heading, weight in vectors:
+            rad = np.radians(heading)
+            x += np.cos(rad) * weight
+            y += np.sin(rad) * weight
+        estimated_heading = np.degrees(np.arctan2(y, x))
+        return estimated_heading
     # Fetches the current state of the drone
+    # state means telemetry data and rssi values
     def get_drone_state(self, hw_id):
         drone = self.drones.get(hw_id)
         if drone is not None:
