@@ -11,10 +11,12 @@ from src.drone_config import DroneConfig
 from src.params import Params as params
 import serial
 import numpy as np
-
+import math
+from kalman import KalmanFilter_rssi
 from pymavlink import mavutil
 
-
+processNoise = 0
+measurementNoise = 0
 class DroneCommunicator_HW:
     def __init__(self, drone_config, param, drones):
         self.drone_config = drone_config
@@ -25,7 +27,7 @@ class DroneCommunicator_HW:
         self.executor = ThreadPoolExecutor(max_workers=10)
         self.systemID = drone_config.hw_id * 10 + 5
         self.ser = serial.Serial('/dev/ttyS0', baudrate = 115200)
-        # self.kf = KalmanFilter(processNoise, measurementNoise)
+        self.kf = KalmanFilter_rssi(processNoise, measurementNoise)
         # print(f"coordinator Sys ID: {self.systemID}")
 
 
@@ -138,6 +140,8 @@ class DroneCommunicator_HW:
             print(msg)
         else:
             return
+
+    # heading code, rssi aligorthim 
     def get_drone_coords(self, array_hw_id):
        # this function gets all the telemetry and rssi data from the drones
        # it returns a dictionary, which has lat, lon, rssi in a listed
@@ -145,10 +149,10 @@ class DroneCommunicator_HW:
         drone_rssi = []
 
         for hw_id in array_hw_id:
-# Get drone state based off hw_id
+            # Get drone state based off hw_id
             drone_state = self.drones.get(hw_id)
 
-# Store the lat, lon, and RSSI in a list
+            # Store the lat, lon, and RSSI in a list
 
             drone_coords.append((drone_state["position_lat"], drone_state["position_lon"]))
             drone_rssi.append(drone_state["RSSI"])
@@ -156,17 +160,18 @@ class DroneCommunicator_HW:
         # get the vectors
         vectors = self.direction_vectors(drone_coords, drone_rssi)
         estimate_heading = self.estimate_direction(vectors)
+        self.leader_wavpoint(estimate_heading, array_hw_id)
         return estimate_heading
 
     
     # Function to calculate heading from one point to another
-    def calculate_heading(lat1, lon1, lat2, lon2):
+    def calculate_heading(self, lat1, lon1, lat2, lon2):
         delta_lon = lon2 - lon1
         delta_lat = lat2 - lat1
         heading = np.degrees(np.arctan2(delta_lon, delta_lat))
         return heading
 
-    def direction_vectors(drone_coords, rssi_values):
+    def direction_vectors(self, drone_coords, rssi_values):
         vectors = []
         for i in range(len(drone_coords)):
             for j in range(len(drone_coords)):
@@ -175,11 +180,11 @@ class DroneCommunicator_HW:
                     lat2, lon2 = drone_coords[j]
                     rssi_diff = rssi_values[i] - rssi_values[j]
                     weight = np.abs(rssi_diff)
-                    heading = calculate_heading(lat1, lon1, lat2, lon2)
+                    heading = self.calculate_heading(lat1, lon1, lat2, lon2)
                     vectors.append((heading, weight))
         return vectors
 
-    def estimate_direction(vectors):
+    def estimate_direction(self, vectors):
         x, y = 0, 0
         for heading, weight in vectors:
             rad = np.radians(heading)
@@ -187,6 +192,28 @@ class DroneCommunicator_HW:
             y += np.sin(rad) * weight
         estimated_heading = np.degrees(np.arctan2(y, x))
         return estimated_heading
+
+    def calculate_new_waypoint(lat, lon, heading, distance_meters):
+        
+        # Convert latitude and heading to radians
+        # did some testing in google map, resolution seems doable
+        lat_rad = math.radians(lat)
+        heading_rad = math.radians(heading)
+
+        # Earth's radius in meters
+        R = 6371000
+
+        # Calculate new latitude
+        new_lat_rad = lat_rad + (distance_meters / R) * math.cos(heading_rad)
+        new_lat = math.degrees(new_lat_rad)
+
+        # Calculate new longitude
+        new_lon_rad = math.radians(lon) + (distance_meters / (R * math.cos(lat_rad))) * math.sin(heading_rad)
+        new_lon = math.degrees(new_lon_rad)
+
+        return new_lat, new_lon   # hw id of leader = 14
+        
+
     # Fetches the current state of the drone
     # state means telemetry data and rssi values
     def get_drone_state(self, hw_id):
@@ -222,7 +249,8 @@ class DroneCommunicator_HW:
                 if data_message:
                     data_message_filter = data_message.split(',')
                     rssiVal = data_message_filter[-2]
-                    self.drone_config.rssi = rssiVal
+                    rssiVal_filtered = self.kf.filter(rssiVal)
+                    self.drone_config.rssi = rssiVal_filtered
                     
                     print(f"rssi value {self.drone_config.rssi}")
                     rssi_tosend = f"RSSI { self.drone_config.rssi}"
