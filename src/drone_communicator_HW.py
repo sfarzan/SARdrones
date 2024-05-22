@@ -259,7 +259,7 @@ class DroneCommunicator_HW:
         if drone is not None:
             drone_state = {
             "hw_id": int(drone.hw_id),
-            "pos_id": int(drone.pos_id),
+            "pos_id": int(drone.config['pos_id']),
             "state": int(drone.state),
             "mission": int(drone.mission),
             "trigger_time": int(drone.trigger_time),
@@ -272,11 +272,9 @@ class DroneCommunicator_HW:
             "yaw": drone.yaw,
             "battery_voltage": drone.battery,
             "follow_mode": int(drone.swarm['follow']),
-            # "update_time": int(drone.last_update_timestamp),
+            "update_time": int(drone.last_update_timestamp),
             "RSSI": drone.rssi
             }
-            print(drone_state)
-
             return drone_state
 
 
@@ -309,7 +307,6 @@ class DroneCommunicator_HW:
                 msg = self.master.recv_match()
                 if (msg):
                     self.update_state(msg)
-                    self.get_drone_state(2)
 
 
             if self.drone_config.mission == 2 and self.drone_config.state != 0 and int(self.drone_config.swarm.get('follow')) != 0:
