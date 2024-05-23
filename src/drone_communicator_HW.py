@@ -144,14 +144,16 @@ class DroneCommunicator_HW:
     # heading code, rssi aligorthim 
     def get_drone_coords(self, array_hw_id):
        # this function gets all the telemetry and rssi data from the drones
-       # it returns a dictionary, which has lat, lon, rssi in a listed
-        drone_coords = []
-        drone_rssi = []
+       # it returns a tuple, which has lat, lon, rssi in a int
+       # this function returns a wavepoint for the leader to go
+
+        drone_coords = [] # the lat and lon are stored as tuples
+        drone_rssi = [] # stored as ints
 
         for hw_id in array_hw_id:
             # Get drone state based off hw_id
             drone_state = self.drones.get(hw_id)
-
+           
             # Store the lat, lon, and RSSI in a list
             if drone_state != None:
                 print(drone_state)
@@ -163,8 +165,11 @@ class DroneCommunicator_HW:
                 vectors = self.direction_vectors(drone_coords, drone_rssi)
                 estimate_heading = self.estimate_direction(vectors)
                 print(f"estimate heading {estimate_heading}")
-                self.calculate_new_waypoint(0, 0, estimate_heading, 40)
-                return estimate_heading
+                # should be leader drone, was not sure how we were going to do this
+                # needs to be based of hardware id, or apartently this entire code
+                # will only run on leader
+                leaderWavePoint = self.calculate_new_waypoint(0, 0, estimate_heading, 40)
+                return leaderWavePoint  
 
     
     # Function to calculate heading from one point to another
@@ -219,6 +224,7 @@ class DroneCommunicator_HW:
 
     # Fetches the current state of the drone
     # state means telemetry data and rssi values
+    # lowkey not a helpful function 
     def get_drone_state(self, hw_id):
         drone = self.drones.get(hw_id)
         if drone is not None:
