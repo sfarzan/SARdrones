@@ -256,6 +256,7 @@ class DroneCommunicator_HW:
     def send_drone_state(self):
         while not self.stop_flag.is_set():
             # Get RSSI Data From LoRa and Send via STATUSTEXT
+            self.send_drone_ack()
             if self.ser.is_open:
                 # decode the message        
                 data_message = self.ser.readline().decode('utf-8').strip() # this is the message
@@ -302,11 +303,17 @@ class DroneCommunicator_HW:
                             drone_object.gcs_msn_ack = False
                             self.ack_count = 0
             elif sys_id in sys_id_list:
-                if mission_code == Mission.SMART_SWARM.value or mission_code == Mission.DRONE_SHOW_FROM_CSV.value:
+                if mission_code == self.drone_config.gcs_msn:
                     if components[2] == "ack":
-                        self.drones[14].gcs_msn_ack = True
-        print(sys_id)
-        print(mission_code)
+                        self.drones[sys_id].gcs_msn_ack = True
+                else:
+                    print("Mission code ACK error: drone {sys_id} gave ack for unauthorized mission {mission_code} but expected {self.drone_config.gcs_msn}")
+                        
+        if self.check_all_drone_ack() is True:
+            self.drone_config.mission = self.drone_config.gcs_msn
+            
+        # print(sys_id)
+        # print(mission_code)
 
     def start_communication(self):
         self.telemetry_thread = threading.Thread(target=self.send_drone_state)
@@ -320,16 +327,18 @@ class DroneCommunicator_HW:
         self.command_thread.join()
         self.executor.shutdown()
 
-    def check_all_drone_ack(self): # simple loops that waits to see if all drones have sent their ack
+    def check_all_drone_ack(self): # simple loops that checks all drone acks
         for drone in self.drones.values():
             if drone.gcs_msn_ack is False:
                 return False
         return True
 
-    def send_drone_ack(self): # while all drones have not sent their ack, send self ack
-        if self.ack_count < 10 and self.drone_config.mission != self.drone_config.gcs_msn:
+    def send_drone_ack(self): # broadcast 10 times
+        if self.ack_count < 10 or self.drone_config.mission != self.drone_config.gcs_msn:
             self.master.mav.statustext_send(
                 mavutil.mavlink.MAV_SEVERITY_INFO,
-                f"msn {self.drone_config.mission} ack".encode('utf-8')
+                f"msn {self.drone_config.gcs_msn} ack".encode('utf-8')
             )
             self.ack_count += 1
+		# in case of some drones getting all acks but other drones not,
+        # when an "all ack" drone sees an incoming ack, it will retransmit its ack 10 times
