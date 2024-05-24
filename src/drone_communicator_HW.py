@@ -15,6 +15,15 @@ import math
 from src.kalman import KalmanFilter_rssi
 from pymavlink import mavutil
 
+class Mission(Enum):
+    NONE = 0
+    DRONE_SHOW_FROM_CSV = 1
+    SMART_SWARM = 2
+    TAKE_OFF = 10
+    LAND = 101
+    HOLD = 102
+    TEST = 100
+
 processNoise = 0
 measurementNoise = 0
 class DroneCommunicator_HW:
@@ -28,6 +37,7 @@ class DroneCommunicator_HW:
         self.systemID = drone_config.hw_id * 10 + 5
         self.ser = serial.Serial('/dev/ttyS0', baudrate = 115200)
         self.kf = KalmanFilter_rssi(processNoise, measurementNoise)
+        self.ack_count = 0
         # print(f"coordinator Sys ID: {self.systemID}")
 
 
@@ -102,7 +112,7 @@ class DroneCommunicator_HW:
             hw_id = data.get_srcSystem()
             logging.debug(f"Received telemetry from Drone {hw_id}")
 
-            # Create a new instance for the drone if not present
+            # Create a new instance for the drone if not present (including this drone)
             if hw_id not in self.drones:
                 print(self.drone_config.hw_id)
                 if hw_id == self.drone_config.hw_id:
@@ -118,6 +128,9 @@ class DroneCommunicator_HW:
                 if split_string[0] == 'RSSI':
                     self.set_drone_config(None, None, None, None, None, None, None, None, None, None, split_string[1])
                     print(f"rssi being updated through status message {split_string[1]}")
+                elif split_string[0] == 'msn':
+                    self.decode_status_text(split_string, hw_id)
+
 
             # Update Position and Velocity Values
             if msg_type == 'UTM_GLOBAL_POSITION':
@@ -295,17 +308,25 @@ class DroneCommunicator_HW:
             if self.drone_config.mission == 2 and self.drone_config.state != 0 and int(self.drone_config.swarm.get('follow')) != 0:
                     self.drone_config.calculate_setpoints()
 
-    def decode_status_text(self, text, sys_id):
-        components = text.split(" ")
-        if sys_id == 14:
-            return None
-        if sys_id == 24:
-            return None
-        if sys_id == 34:
-            return None
-        codes = [int(components) for component in components if component.isdigit()]
+    def decode_status_text(self, text, sys_id): # input text is already split
+        sys_id_list = [obj.hw_id for obj in self.drones.values()]
+        components = text # format: msn_#_[ack] [ack] is only added if sent from a drone. ignore if from gcs
+        mission_code = [int(component) for component in components if component.isdigit()][0]
+        if components[0] == 'msn':
+            if sys_id == 4: # this will arrive multiple times. Change to idle mode once and ignore anything after that
+                if mission_code != self.drone_config.mission:
+                    for drone_object in self.drones.values():
+                        drone_object.gcs_msn = mission_code
+                        if drone_object.mission != Mission.HOLD.value and not drone_object.gcs_msn_ack is True:
+                            self.set_drone_config(drone_object.hw_id , None, None, Mission.HOLD.value, None, None, None, None, None, None, None)
+                            drone_object.gcs_msn_ack = False
+                            self.ack_count = 0
+            elif sys_id in sys_id_list:
+                if mission_code == Mission.SMART_SWARM.value or mission_code == Mission.DRONE_SHOW_FROM_CSV.value:
+                    if components[2] == "ack":
+                        self.drones[14].gcs_msn_ack = True
         print(sys_id)
-        print(codes)
+        print(mission_code)
 
     def start_communication(self):
         self.telemetry_thread = threading.Thread(target=self.send_drone_state)
@@ -319,18 +340,17 @@ class DroneCommunicator_HW:
         self.command_thread.join()
         self.executor.shutdown()
 
-    def drone_ack(self, cmd, msn):
-        # add code here or modification to send an ack. Also, before this runs, coordinator should enter idle mode or
-        test1 = "cmd " + str(cmd) + " ack 1 msn " + str(msn)
-        count = 0
-        
-        msg1 = mavutil.mavlink.MAVLink_statustext_message(
-            mavutil.mavlink.MAV_SEVERITY_INFO, 
-            test1.encode("utf-8")
-            # packet[0:40]
-        )
-        # print(len(packet))
-        for i in range(10):
-            self.master.mav.send(msg1)
-            time.sleep(1)
+    def check_all_drone_ack(self): # simple loops that waits to see if all drones have sent their ack
+        for drone in self.drones.values():
+            if drone.gcs_msn_ack is False:
+                return False
+        return True
+
+    def send_drone_ack(self): # while all drones have not sent their ack, send self ack
+        if self.ack_count < 10 and self.drone_config.mission != self.drone_config.gcs_msn:
+            self.master.mav.statustext_send(
+                mavutil.mavlink.MAV_SEVERITY_INFO,
+                f"msn {self.drone_config.mission} ack".encode('utf-8')
+            )
+            self.ack_count += 1
 
