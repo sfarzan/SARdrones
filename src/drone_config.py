@@ -47,8 +47,8 @@ class DroneConfig:
         self.target_drone = None
         self.drones = drones
         self.kalman_filter = KalmanFilter() # New line
-        self.gcs_cmd = 'a'
-        self.gcs_cmd_ack = False
+        self.gcs_msn = 0
+        self.gcs_msn_ack = False
         self.rssi = None
 
 
