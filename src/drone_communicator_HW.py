@@ -14,6 +14,7 @@ import numpy as np
 import math
 from src.kalman import KalmanFilter_rssi
 from pymavlink import mavutil
+from enum import Enum
 
 message_types = ['STATUSTEXT', 'UTM_GLOBAL_POSITION', 'ATTITUDE', 'SYS_STATUS']
 
