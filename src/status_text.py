@@ -311,7 +311,7 @@ class DroneCommunicator_HW:
                         
         if self.check_all_drone_ack() is True:
             self.drone_config.mission = self.drone_config.gcs_msn
-            
+      
         # print(sys_id)
         # print(mission_code)
 
@@ -330,6 +330,7 @@ class DroneCommunicator_HW:
     def check_all_drone_ack(self): # simple loops that checks all drone acks
         for drone in self.drones.values():
             if drone.gcs_msn_ack is False:
+                self.ack_count = 0 # reset the ack count until all drones acks have arrived
                 return False
         return True
 
@@ -340,5 +341,4 @@ class DroneCommunicator_HW:
                 f"msn {self.drone_config.gcs_msn} ack".encode('utf-8')
             )
             self.ack_count += 1
-		# in case of some drones getting all acks but other drones not,
-        # when an "all ack" drone sees an incoming ack, it will retransmit its ack 10 times
+		# all drones will keep on sending their acks until
