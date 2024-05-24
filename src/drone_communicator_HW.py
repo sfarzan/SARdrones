@@ -15,6 +15,8 @@ import math
 from src.kalman import KalmanFilter_rssi
 from pymavlink import mavutil
 
+message_types = ['STATUSTEXT', 'UTM_GLOBAL_POSITION', 'ATTITUDE', 'SYS_STATUS']
+
 class Mission(Enum):
     NONE = 0
     DRONE_SHOW_FROM_CSV = 1
@@ -105,9 +107,8 @@ class DroneCommunicator_HW:
         self.drones[hw_id] = drone
 
     def update_state(self, data):
-    
         msg_type = data.get_type()
-        if msg_type == "STATUSTEXT" or msg_type == "UTM_GLOBAL_POSITION" or msg_type == "ATTITUDE" or msg_type == "SYS_STATUS":
+        if msg_type in message_types: # array of message types are at top of file
             # Ensures Drone_config object will contain position information - Also helps to filter out non-drone systems
             hw_id = data.get_srcSystem()
             logging.debug(f"Received telemetry from Drone {hw_id}")
@@ -130,7 +131,6 @@ class DroneCommunicator_HW:
                     print(f"rssi being updated through status message {split_string[1]}")
                 elif split_string[0] == 'msn':
                     self.decode_status_text(split_string, hw_id)
-
 
             # Update Position and Velocity Values
             if msg_type == 'UTM_GLOBAL_POSITION':
@@ -294,6 +294,7 @@ class DroneCommunicator_HW:
                     # KF_rssi = self.kf.filter(rssiVal)
                     # KF_var = self.kf.get_cov()
 
+            self.send_drone_ack() # send drone ack periodically as needed
             time.sleep(self.params.TELEM_SEND_INTERVAL)
         
     def read_packets(self):
@@ -303,7 +304,6 @@ class DroneCommunicator_HW:
                 msg = self.master.recv_match()
                 if (msg):
                     self.update_state(msg)
-
 
             if self.drone_config.mission == 2 and self.drone_config.state != 0 and int(self.drone_config.swarm.get('follow')) != 0:
                     self.drone_config.calculate_setpoints()
@@ -322,11 +322,17 @@ class DroneCommunicator_HW:
                             drone_object.gcs_msn_ack = False
                             self.ack_count = 0
             elif sys_id in sys_id_list:
-                if mission_code == Mission.SMART_SWARM.value or mission_code == Mission.DRONE_SHOW_FROM_CSV.value:
+                if mission_code == self.drone_config.gcs_msn:
                     if components[2] == "ack":
-                        self.drones[14].gcs_msn_ack = True
-        print(sys_id)
-        print(mission_code)
+                        self.drones[sys_id].gcs_msn_ack = True
+                else:
+                    print("Mission code ACK error: drone {sys_id} gave ack for unauthorized mission {mission_code} but expected {self.drone_config.gcs_msn}")
+                        
+        if self.check_all_drone_ack() is True:
+            self.drone_config.mission = self.drone_config.gcs_msn
+      
+        # print(sys_id)
+        # print(mission_code)
 
     def start_communication(self):
         self.telemetry_thread = threading.Thread(target=self.send_drone_state)
@@ -340,17 +346,19 @@ class DroneCommunicator_HW:
         self.command_thread.join()
         self.executor.shutdown()
 
-    def check_all_drone_ack(self): # simple loops that waits to see if all drones have sent their ack
+    def check_all_drone_ack(self): # simple loops that checks all drone acks
         for drone in self.drones.values():
             if drone.gcs_msn_ack is False:
+                self.ack_count = 0 # reset the ack count until all drones acks have arrived
                 return False
         return True
 
-    def send_drone_ack(self): # while all drones have not sent their ack, send self ack
-        if self.ack_count < 10 and self.drone_config.mission != self.drone_config.gcs_msn:
+    def send_drone_ack(self): # broadcast 10 times
+        if self.ack_count < 10 or self.drone_config.mission != self.drone_config.gcs_msn:
             self.master.mav.statustext_send(
                 mavutil.mavlink.MAV_SEVERITY_INFO,
-                f"msn {self.drone_config.mission} ack".encode('utf-8')
+                f"msn {self.drone_config.gcs_msn} ack".encode('utf-8')
             )
             self.ack_count += 1
+		# all drones will keep on sending their acks until
 

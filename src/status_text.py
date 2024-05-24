@@ -285,7 +285,6 @@ class DroneCommunicator_HW:
                 if (msg):
                     self.update_state(msg)
 
-
             if self.drone_config.mission == 2 and self.drone_config.state != 0 and int(self.drone_config.swarm.get('follow')) != 0:
                     self.drone_config.calculate_setpoints()
 
