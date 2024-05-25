@@ -62,9 +62,9 @@ class DroneConfig:
 
         if hw_id_files:
             hw_id_file = os.path.basename(hw_id_files[0])
-            print(f"Hardware ID file found: {hw_id_file}")
+            # print(f"Hardware ID file found: {hw_id_file}")
             hw_id = int(hw_id_file.split(".")[0])
-            print(f"Hardware ID: {hw_id}")
+            # print(f"Hardware ID: {hw_id}")
             return hw_id
         else:
             print("Hardware ID file not found. Please check your files.")

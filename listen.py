@@ -51,7 +51,7 @@ drones = []
 
 if single_drone:
     # Read the hardware ID from the '.hwID' file
-    hw_id = 2  # Extract the hw_id
+    hw_id = 24  # Extract the hw_id
 
     # Find the configuration for the drone in the 'config.csv' file
     drone_config = config_df.loc[config_df['hw_id'] == hw_id].iloc[0]

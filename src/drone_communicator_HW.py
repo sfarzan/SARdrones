@@ -37,11 +37,11 @@ class DroneCommunicator_HW:
         self.stop_flag = threading.Event()
         self.nodes = None
         self.executor = ThreadPoolExecutor(max_workers=10)
-        self.systemID = drone_config.hw_id * 10 + 5
+        self.systemID = drone_config.hw_id + 1
         self.ser = serial.Serial('/dev/ttyS0', baudrate = 115200)
         self.kf = KalmanFilter_rssi(processNoise, measurementNoise)
         self.ack_count = 0
-        # print(f"coordinator Sys ID: {self.systemID}")
+        print(f"coordinator Sys ID: {self.systemID}")
 
 
     def init_mavlink_comms(self):
@@ -51,24 +51,17 @@ class DroneCommunicator_HW:
         self.master.wait_heartbeat()
         print(f'Comms: Heartbeat from system (system {self.master.target_system} component {self.master.target_system})')
 
-    def send_telem(self, packet):
+    def send_telem(self, packet = None):
         if True:
             test1 = "TEST1"
-            test2 = "TEST2"
             
             msg1 = mavutil.mavlink.MAVLink_statustext_message(
                 mavutil.mavlink.MAV_SEVERITY_INFO, 
                 test1.encode("utf-8")
                 # packet[0:40]
             )
-            msg2 = mavutil.mavlink.MAVLink_statustext_message(
-                mavutil.mavlink.MAV_SEVERITY_INFO, 
-                test2.encode("utf-8")
-                # packet[40:81]
-            )
             # print(len(packet))
             self.master.mav.send(msg1)
-            self.master.mav.send(msg2)
         
     def send_packet_to_node(self, packet):
         self.master.statustext_send(
@@ -115,8 +108,8 @@ class DroneCommunicator_HW:
             logging.debug(f"Received telemetry from Drone {hw_id}")
 
             # Create a new instance for the drone if not present (including this drone)
-            if hw_id not in self.drones:
-                print(self.drone_config.hw_id)
+            if hw_id not in self.drones and hw_id != 4:
+                print(f"New ID: {self.drone_config.hw_id}")
                 if hw_id == self.drone_config.hw_id:
                     self.drones[hw_id] = self.drone_config
                 else:
@@ -125,12 +118,14 @@ class DroneCommunicator_HW:
 
             # Update RSSI Values
             if msg_type == 'STATUSTEXT':
-                print("mesg type is status")
+                # print(f"sts: {data}")
+                # print("mesg type is status")
                 split_string = data.text.split()
                 if split_string[0] == 'RSSI':
                     self.set_drone_config(None, None, None, None, None, None, None, None, None, None, split_string[1])
                     print(f"rssi being updated through status message {split_string[1]}")
                 elif split_string[0] == 'msn':
+                    print(data)
                     self.decode_status_text(split_string, hw_id)
 
             # Update Position and Velocity Values
@@ -138,6 +133,7 @@ class DroneCommunicator_HW:
                 position = {'lat': data.lat / 1E7, 'long': data.lon / 1E7, 'alt': data.alt / 1E7}
                 velocity = {'north': data.vx, 'east': data.vy, 'down': data.vz}
                 self.set_drone_config(hw_id, None, None, None, None, position, velocity, None, None, data.time, None)
+                # print(f"Drone: {hw_id} GPS: {data}\n")
             
             # Update Yaw Values
             if msg_type == 'ATTITUDE':
@@ -146,21 +142,6 @@ class DroneCommunicator_HW:
             # Update Battery Values
             if msg_type == 'SYS_STATUS':
                 self.set_drone_config(hw_id, None, None, None, None, None, None, None, data.voltage_battery, None, None)
-
-    
-    def receive(self):
-        msg = self.master.recv_match()
-        if msg and msg.get_type():
-            print(msg)
-        else:
-            return
-
-    def receive(self, _type):
-        msg = self.master.recv_match(type=_type)
-        if msg and msg.get_type() == type:
-            print(msg)
-        else:
-            return
 
     # heading code, rssi aligorthim 
     def get_drone_coords(self, array_hw_id):
@@ -296,6 +277,7 @@ class DroneCommunicator_HW:
                     # KF_var = self.kf.get_cov()
 
             self.send_drone_ack() # send drone ack periodically as needed
+            # self.send_telem()
             time.sleep(self.params.TELEM_SEND_INTERVAL)
         
     def read_packets(self):
@@ -305,6 +287,7 @@ class DroneCommunicator_HW:
                 msg = self.master.recv_match()
                 if (msg):
                     self.update_state(msg)
+                    # print(msg)
 
             if self.drone_config.mission == 2 and self.drone_config.state != 0 and int(self.drone_config.swarm.get('follow')) != 0:
                     self.drone_config.calculate_setpoints()
@@ -315,25 +298,31 @@ class DroneCommunicator_HW:
         mission_code = [int(component) for component in components if component.isdigit()][0]
         if components[0] == 'msn':
             if sys_id == 4: # this will arrive multiple times. Change to idle mode once and ignore anything after that
+                print("recv new mission")
                 if mission_code != self.drone_config.mission:
+                    print(f"mission code: {mission_code} not same curr: {self.drone_config.mission}")
                     for drone_object in self.drones.values():
                         drone_object.gcs_msn = mission_code
-                        if drone_object.mission != Mission.HOLD.value and not drone_object.gcs_msn_ack is True:
+                        # if drone_object.mission != Mission.HOLD.value and not drone_object.gcs_msn_ack is True:
+                        if drone_object.mission != Mission.HOLD.value:
+                            print("reset ack and ack count")
                             self.set_drone_config(drone_object.hw_id , None, None, Mission.HOLD.value, None, None, None, None, None, None, None)
                             drone_object.gcs_msn_ack = False
                             self.ack_count = 0
+                    self.drone_config.gcs_msn_ack = True
             elif sys_id in sys_id_list:
                 if mission_code == self.drone_config.gcs_msn:
                     if components[2] == "ack":
                         self.drones[sys_id].gcs_msn_ack = True
                 else:
-                    print("Mission code ACK error: drone {sys_id} gave ack for unauthorized mission {mission_code} but expected {self.drone_config.gcs_msn}")
+                    print(f"Mission code ACK error: drone {sys_id} gave ack for unauthorized mission {mission_code} but expected {self.drone_config.gcs_msn}")
                         
         if self.check_all_drone_ack() is True:
+            print("all drones have ack")
             self.drone_config.mission = self.drone_config.gcs_msn
-      
+        # print(f"")
         # print(sys_id)
-        # print(mission_code)
+        print(text)
 
     def start_communication(self):
         self.telemetry_thread = threading.Thread(target=self.send_drone_state)
@@ -355,6 +344,7 @@ class DroneCommunicator_HW:
         return True
 
     def send_drone_ack(self): # broadcast 10 times
+        # print(f"sending drone ack {self.ack_count}")
         if self.ack_count < 10 or self.drone_config.mission != self.drone_config.gcs_msn:
             self.master.mav.statustext_send(
                 mavutil.mavlink.MAV_SEVERITY_INFO,
