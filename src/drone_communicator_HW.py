@@ -301,7 +301,7 @@ class DroneCommunicator_HW:
         mission_code = [int(component) for component in components if component.isdigit()][0]
         if sys_id == 4: # this will arrive multiple times. Change to idle mode once and ignore anything after that
             print("recv new mission")
-            if self.drone_config.mission != mission_code:
+            if self.drone_config.gcs_msn != mission_code:
                 print(f"mission code: {mission_code} not same curr: {self.drone_config.mission}")
                 if mission_code == Mission.SMART_SWARM.value or mission_code == Mission.DRONE_SHOW_FROM_CSV.value:
                     if self.drone_config.mission != Mission.HOLD.value:
