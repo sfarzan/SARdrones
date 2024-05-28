@@ -50,6 +50,7 @@ class DroneConfig:
         self.gcs_msn = 0
         self.gcs_msn_ack = False
         self.rssi = None
+        self.prev_mission = 0
 
 
     def get_hw_id(self, hw_id=None):

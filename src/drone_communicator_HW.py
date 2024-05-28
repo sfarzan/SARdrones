@@ -306,7 +306,7 @@ class DroneCommunicator_HW:
                 if mission_code == Mission.SMART_SWARM.value or mission_code == Mission.DRONE_SHOW_FROM_CSV.value:
                     if self.drone_config.mission != Mission.HOLD.value:
                         self.set_drone_config(None, None, None, Mission.HOLD.value, None, None, None, None, None, None, None)
-                else:
+                elif self.drone_config.prev_mission != mission_code:
                     self.set_drone_config(None, None, None, mission_code, None, None, None, None, None, None, None)
                 for drone_object in self.drones.values():
                     drone_object.gcs_msn = mission_code
@@ -337,7 +337,7 @@ class DroneCommunicator_HW:
             if drone.gcs_msn_ack is False:
                 self.ack_count = 0 # reset the ack count until all drones acks have arrived
                 return False
-        if self.drone_config.mission != self.drone_config.gcs_msn:
+        if self.drone_config.mission != self.drone_config.gcs_msn and self.drone_config.prev_mission != self.drone_config.gcs_msn:
             print(f"Changing to mission from gcs: {self.drone_config.gcs_msn}")
             self.drone_config.mission = self.drone_config.gcs_msn
         return True

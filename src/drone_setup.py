@@ -143,5 +143,7 @@ class DroneSetup:
         if success:
             if self.drone_config.mission != 2:  # Don't reset if it's a Smart Swarm mission
                 logging.info("Resetting mission code and state.")
+                self.drone_config.prev_mission = self.drone_config.mission
                 self.drone_config.mission = 0
                 self.drone_config.state = 0
+                self.drone_config.gcs_msn = 0
