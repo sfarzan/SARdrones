@@ -22,7 +22,7 @@ class MavlinkManager:
                     mavlink_source = f"/dev/{self.params.serial_mavlink_port}:{self.params.serial_baudrate}"
                 else:
                     logging.info("Real mode is enabled. Connecting to Pixhawk via UDP...")
-                    mavlink_source = f"192.168.0.25:{self.params.sitl_port}"
+                    mavlink_source = f"192.168.0.35:{self.params.sitl_port}"
 
             logging.info(f"Using MAVLink source: {mavlink_source}")
 
