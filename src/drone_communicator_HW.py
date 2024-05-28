@@ -111,7 +111,7 @@ class DroneCommunicator_HW:
             logging.debug(f"Received telemetry from Drone {hw_id}")
 
             # Create a new instance for the drone if not present (including this drone)
-            if hw_id not in self.drones and hw_id > 10 and hw_id < 100:
+            if hw_id not in self.drones and hw_id > 10 and hw_id < 100 and hw_id%10 == 4:
                 print(f"New ID: {self.drone_config.hw_id}")
                 if hw_id == self.drone_config.hw_id:
                     self.drones[hw_id] = self.drone_config
