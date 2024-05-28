@@ -128,7 +128,7 @@ class DroneCommunicator_HW:
                     self.set_drone_config(None, None, None, None, None, None, None, None, None, None, split_string[1])
                     print(f"rssi being updated through status message {split_string[1]}")
                 elif split_string[0] == 'msn':
-                    # print(data.text)
+                    print(f"{data.text} from {hw_id}")
                     self.decode_status_text(split_string, hw_id)
 
             # Update Position and Velocity Values
