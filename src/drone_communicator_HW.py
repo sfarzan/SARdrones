@@ -300,9 +300,9 @@ class DroneCommunicator_HW:
         components = text # format: msn_#_[ack] [ack] is only added if sent from a drone. ignore if from gcs
         mission_code = [int(component) for component in components if component.isdigit()][0]
         if sys_id == 4: # this will arrive multiple times. Change to idle mode once and ignore anything after that
-            # print("recv new mission")
+            print("recv new mission")
             if self.drone_config.mission != mission_code:
-                # print(f"mission code: {mission_code} not same curr: {self.drone_config.mission}")
+                print(f"mission code: {mission_code} not same curr: {self.drone_config.mission}")
                 if self.drone_config.mission != Mission.HOLD.value:
                     self.set_drone_config(None, None, None, Mission.HOLD.value, None, None, None, None, None, None, None)
                 for drone_object in self.drones.values():
@@ -313,6 +313,7 @@ class DroneCommunicator_HW:
         elif sys_id - 1 in sys_id_list:
             if mission_code and components[2] == 'ack':
                 self.drones[sys_id].gcs_msn_ack = True
+                print(f"got ack from drone {sys_id}")
 
 
     def start_communication(self):
@@ -333,13 +334,14 @@ class DroneCommunicator_HW:
                 self.ack_count = 0 # reset the ack count until all drones acks have arrived
                 return False
         if self.drone_config.mission != self.drone_config.gcs_msn:
+            print(f"changeing to mission from gcs: {self.drone_config.gcs_msn}")
             self.drone_config.mission = self.drone_config.gcs_msn
         return True
 
     def send_drone_ack(self): # broadcast 10 times
-        # print(f"sending drone ack {self.ack_count}")
         self.check_all_drone_ack()
         if self.ack_count < 10:
+            print(f"sending drone ack {self.ack_count}")
             self.master.mav.statustext_send(
                 mavutil.mavlink.MAV_SEVERITY_INFO,
                 f"msn {self.drone_config.gcs_msn} ack".encode('utf-8')
