@@ -303,16 +303,20 @@ class DroneCommunicator_HW:
             print("recv new mission")
             if self.drone_config.mission != mission_code:
                 print(f"mission code: {mission_code} not same curr: {self.drone_config.mission}")
-                if self.drone_config.mission != Mission.HOLD.value:
-                    self.set_drone_config(None, None, None, Mission.HOLD.value, None, None, None, None, None, None, None)
+                if mission_code == Mission.SMART_SWARM.value or mission_code == Mission.DRONE_SHOW_FROM_CSV.value:
+                    if self.drone_config.mission != Mission.HOLD.value:
+                        self.set_drone_config(None, None, None, Mission.HOLD.value, None, None, None, None, None, None, None)
+                else:
+                    self.set_drone_config(None, None, None, mission_code, None, None, None, None, None, None, None)
                 for drone_object in self.drones.values():
                     drone_object.gcs_msn = mission_code
                     drone_object.gcs_msn_ack = False
                 self.drone_config.gcs_msn_ack = True
                 self.ack_count = 0
+                    
         elif sys_id - 1 in sys_id_list:
             if mission_code and components[2] == 'ack':
-                self.drones[sys_id].gcs_msn_ack = True
+                self.drones[sys_id - 1].gcs_msn_ack = True
                 print(f"got ack from drone {sys_id}")
 
 
@@ -340,7 +344,7 @@ class DroneCommunicator_HW:
 
     def send_drone_ack(self): # broadcast 10 times
         self.check_all_drone_ack()
-        if self.ack_count < 10:
+        if self.ack_count < 10 and self.drone_config.gcs_msn_ack is True:
             # print(f"sending drone ack {self.ack_count}")
             self.master.mav.statustext_send(
                 mavutil.mavlink.MAV_SEVERITY_INFO,
