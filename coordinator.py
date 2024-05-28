@@ -105,6 +105,7 @@ print("Initializing MAVLink...")
 mavlink_manager.initialize()  # Use MavlinkManager's initialize method
 time.sleep(2)
 
+local_drone_controller.mav.await_heartbeat()
 drone_comms.init_mavlink_comms()
 drone_comms.start_communication()
 
