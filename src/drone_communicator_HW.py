@@ -310,7 +310,7 @@ class DroneCommunicator_HW:
                     drone_object.gcs_msn_ack = False
                 self.drone_config.gcs_msn_ack = True
                 self.ack_count = 0
-        elif sys_id in sys_id_list:
+        elif sys_id - 1 in sys_id_list:
             if mission_code and components[2] == 'ack':
                 self.drones[sys_id].gcs_msn_ack = True
 
