@@ -26,6 +26,7 @@ class LocalMavlinkController:
         
         # Create a Mavlink connection to the drone. Replace "local_mavlink_port" with the actual port.
         self.mav = mavutil.mavlink_connection(f"udp:localhost:{params.local_mavlink_port}")
+        self.mav.wait_heartbeat()
         self.drone_config = drone_config
         self.local_mavlink_refresh_interval = params.local_mavlink_refresh_interval
         self.run_telemetry_thread = threading.Event()
