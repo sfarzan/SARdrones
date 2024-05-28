@@ -38,7 +38,7 @@ class DroneCommunicator_HW:
         self.nodes = None
         self.executor = ThreadPoolExecutor(max_workers=10)
         self.systemID = drone_config.hw_id + 1
-        self.ser = serial.Serial('/dev/ttyS0', baudrate = 115200)
+        # self.ser = serial.Serial('/dev/ttyS0', baudrate = 115200)
         self.kf = KalmanFilter_rssi(processNoise, measurementNoise)
         self.ack_count = 0
         print(f"coordinator Sys ID: {self.systemID}")
