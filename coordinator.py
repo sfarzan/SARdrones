@@ -120,6 +120,10 @@ print("Initializing MAVLink...")
 mavlink_manager.initialize()  # Use MavlinkManager's initialize method
 time.sleep(2)
 
+# Run Annoying Extra Code that Makes the Pixhawk Connect
+# with open('drone_connect.py') as file:
+#     exec(file.read())
+
 drone_comms.init_mavlink_comms()
 drone_comms.start_communication()
 
