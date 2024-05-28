@@ -26,6 +26,7 @@ import requests
 from geographiclib.geodesic import Geodesic
 from mavsdk import System
 from mavsdk.offboard import OffboardError, PositionNedYaw, VelocityNedYaw
+from mavsdk.server_utility import StatusTextType
 from src.offboard_controller import OffboardController
 import logging
 import src.params as params
@@ -46,6 +47,24 @@ class Mission(Enum):
     LAND = 101
     HOLD = 102
     TEST = 100
+
+### status message exmaple to get initial connection with drone
+async def run():
+
+    drone = System(sysid=1)
+    await drone.connect(system_address="udp://:14540")
+
+    print("Waiting for drone to connect...")
+    async for state in drone.core.connection_state():
+        if state.is_connected:
+            print(f"-- Connected to drone!")
+            await drone.server_utility.send_status_text(
+                StatusTextType.INFO, "Hello world!")
+            break
+    return
+
+asyncio.run(run())
+### status message exmaple to get initial connection with drone
 
 # Create 'logs' directory if it doesn't exist
 if not os.path.exists('logs'):
@@ -84,10 +103,6 @@ params = params.Params()
 
 # Initialize DroneConfig
 drone_config = DroneConfig(drones)
-
-
- 
-
 
 # Create an instance of LocalMavlinkController. This instance will start a new thread that reads incoming Mavlink
 # messages from the drone, processes these messages, and updates the drone_config object accordingly.
@@ -165,8 +180,6 @@ def main_loop():
 
     print("Exiting the application...")
     logging.info("Exiting the application.")
-
-
 
 # Main function
 def main():
