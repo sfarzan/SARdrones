@@ -65,8 +65,8 @@ def arm_drone(drone):
         mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
         0,
         1, 0, 0, 0, 0, 0, 0)
-    drone.motors_armed_wait()
-    print("Vehicle armed")
+    drone.mav.motors_armed_wait()
+    # print("Vehicle armed")
         # Wait for the drone to arm
     ack = drone.recv_match(type='COMMAND_ACK', blocking=True)
     if ack.command == mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM and ack.result == mavutil.mavlink.MAV_RESULT_ACCEPTED:
