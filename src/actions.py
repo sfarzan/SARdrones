@@ -39,7 +39,7 @@ def read_hw_id():
         return hw_id
 
     current_directory = os.getcwd()
-    grandparent_directory = os.path.abspath(os.path.join(current_directory, os.pardir))
+    grandparent_directory = os.path.abspath(os.path.join(current_directory, os.pardir, os.pardir))
     hw_id_files = glob.glob(os.path.join(grandparent_directory, '**/*.hwID'), recursive=True)
 
     if hw_id_files:
