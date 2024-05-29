@@ -48,7 +48,7 @@ class DroneSetup:
         Message is a string describing the outcome or error.
         """
         try:
-            print("doing run mission script wait")
+            print("pre subprocess open")
             process = subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             if self.drone_config.mission == 1:
                 while process.poll() is None and self.drone_config.mission != 2 and self.drone_config.mission != 101:
@@ -61,6 +61,7 @@ class DroneSetup:
                 logging.info("stdout:", stdout.decode())
                 logging.info("stderr:", stderr.decode())
             else:
+                print("post open, pre wait")
                 process.wait()
                 logging.info("Mission script completed successfully.")
                 return True, "Mission script completed successfully."
@@ -105,7 +106,7 @@ class DroneSetup:
             # altitude = float(self.drone_config.mission) - 10
             altitude = 10  # Limit altitude to 50m
             logging.info(f"Starting Takeoff to {altitude}m")
-            success, message = self.run_mission_script(f"python3 actions.py --action=takeoff --altitude={altitude}")
+            success, message = self.run_mission_script(f"python actions.py --action=takeoff --altitude={altitude}")
         
         # If the mission is to land
         elif self.drone_config.mission == 101:
