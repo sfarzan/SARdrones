@@ -58,14 +58,13 @@ async def check_gps_fix_and_arm(drone):
 
 
 def arm_drone(drone):
+    print("Arming the drone...")
     drone.mav.command_long_send(
-        drone.mav.command_long_send(
-            drone.target_system,
-            drone.target_component,
-            mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
-            0,
-            1, 0, 0, 0, 0, 0, 0)
-        )
+        drone.target_system,
+        drone.target_component,
+        mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+        0,
+        1, 0, 0, 0, 0, 0, 0)
     drone.motors_armed_wait()
     print("Vehicle armed")
         # Wait for the drone to arm
@@ -175,7 +174,6 @@ async def perform_action(action, altitude):
         print(f"Comms: Waiting for Heartbeat at udp:localhost:{params.comms_port}")
         master.wait_heartbeat()
         print(f'Comms: Heartbeat from system (system {master.target_system} component {master.target_system})')
-        print(f"what is the target id: {master.target_system}")
 
     except Exception as e:
         logging.error(f"Error starting pymavlink: {e}")
