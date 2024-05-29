@@ -170,6 +170,7 @@ async def perform_action(action, altitude):
 
 if __name__ == "__main__":
     # Parse command-line arguments
+    print("running actions.py")
     parser = argparse.ArgumentParser(description="Perform actions with drones.")
     parser.add_argument('--action', type=str, required=True, help='Action to perform: takeoff, land, hold')
     parser.add_argument('--altitude', type=float, default=10, help='Altitude for takeoff')

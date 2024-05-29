@@ -48,6 +48,7 @@ class DroneSetup:
         Message is a string describing the outcome or error.
         """
         try:
+            print("doing run mission script wait")
             process = subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             if self.drone_config.mission == 1:
                 while process.poll() is None and self.drone_config.mission != 2 and self.drone_config.mission != 101:
@@ -60,7 +61,6 @@ class DroneSetup:
                 logging.info("stdout:", stdout.decode())
                 logging.info("stderr:", stderr.decode())
             else:
-                print("doing run mission script wait")
                 process.wait()
                 logging.info("Mission script completed successfully.")
                 return True, "Mission script completed successfully."
