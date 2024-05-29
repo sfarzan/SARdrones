@@ -34,14 +34,21 @@ def start_mavsdk_server(grpc_port, udp_port):
 
 
 def read_hw_id():
-    hwid_files = glob.glob('*.hwID')
-    if hwid_files:
-        filename = hwid_files[0]
-        hw_id = os.path.splitext(filename)[0]  # Get filename without extension
-        print(f"Hardware ID {hw_id} detected.")
-        return int(hw_id)
+    if hw_id is not None:
+        return hw_id
+
+    current_directory = os.getcwd()
+    grandparent_directory = os.path.abspath(os.path.join(current_directory, os.pardir))
+    hw_id_files = glob.glob(os.path.join(grandparent_directory, '**/*.hwID'), recursive=True)
+
+    if hw_id_files:
+        hw_id_file = os.path.basename(hw_id_files[0])
+        # print(f"Hardware ID file found: {hw_id_file}")
+        hw_id = int(hw_id_file.split(".")[0])
+        # print(f"Hardware ID: {hw_id}")
+        return hw_id
     else:
-        print("Hardware ID file not found.")
+        print("Hardware ID file not found. Please check your files.")
         return None
 
 def read_config(filename='config.csv'):
@@ -63,10 +70,10 @@ def read_config(filename='config.csv'):
                 return droneConfig
     print("No matching hardware ID found in the configuration file.")
             
-SIM_MODE = True  # or True based on your setting
-GRPC_PORT_BASE = 50050
-UDP_PORT_BASE = 14550
 HW_ID = read_hw_id()
+SIM_MODE = False  # or True based on your setting
+GRPC_PORT_BASE = 50050
+UDP_PORT_BASE = 14550 + HW_ID
 
 # Function for ensuring GPS fix before drone arm to avoid COMMAND_DENIED error
 async def check_gps_fix_and_arm(drone):        
