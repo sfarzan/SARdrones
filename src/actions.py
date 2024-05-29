@@ -10,47 +10,6 @@ from params import Params as params
 from pymavlink import mavutil
 import psutil  # You may need to install this package
 
-# Function to check if MAVSDK server is running
-def check_mavsdk_server_running(port):
-    for proc in psutil.process_iter(['pid', 'name']):
-        try:
-            for conn in proc.connections(kind='inet'):
-                if conn.laddr.port == port:
-                    return True, proc.info['pid']
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-            pass
-    return False, None
-
-# Modified start_mavsdk_server function
-def start_mavsdk_server(grpc_port, udp_port):
-    is_running, pid = check_mavsdk_server_running(grpc_port)
-    if is_running:
-        print(f"MAVSDK server already running on port {grpc_port}. Terminating...")
-        psutil.Process(pid).terminate()
-        psutil.Process(pid).wait()  # Wait for the process to actually terminate
-    
-    print(f"Starting mavsdk_server on gRPC port: {grpc_port}, UDP port: {udp_port}")
-    mavsdk_server = subprocess.Popen(["./mavsdk_server", "-p", str(grpc_port), f"udp://:{udp_port}"])
-    return mavsdk_server
-
-
-def read_hw_id(hw_id = None):
-    if hw_id is not None:
-        return hw_id
-
-    current_directory = os.getcwd()
-    grandparent_directory = os.path.abspath(os.path.join(current_directory, os.pardir, os.pardir))
-    hw_id_files = glob.glob(os.path.join(grandparent_directory, '**/*.hwID'), recursive=True)
-
-    if hw_id_files:
-        hw_id_file = os.path.basename(hw_id_files[0])
-        # print(f"Hardware ID file found: {hw_id_file}")
-        hw_id = int(hw_id_file.split(".")[0])
-        # print(f"Hardware ID: {hw_id}")
-        return hw_id
-    else:
-        print("Hardware ID file not found. Please check your files.")
-        return None
 
 def read_config(filename='config.csv'):
     print("Reading drone configuration...")
@@ -71,7 +30,7 @@ def read_config(filename='config.csv'):
                 return droneConfig
     print("No matching hardware ID found in the configuration file.")
             
-HW_ID = read_hw_id()
+HW_ID = params.hw_id
 SIM_MODE = False  # or True based on your setting
 GRPC_PORT_BASE = 50050
 UDP_PORT_BASE = 14550 + HW_ID
@@ -96,12 +55,6 @@ async def check_gps_fix_and_arm(drone):
             print("Timeout waiting for GPS fix")
             break
         await asyncio.sleep(1)
-
-
-
-def stop_mavsdk_server(mavsdk_server):
-    print("Stopping mavsdk_server")
-    mavsdk_server.terminate()
 
 
 def arm_drone(drone):
@@ -217,10 +170,12 @@ async def perform_action(action, altitude):
     # mavsdk_server = start_mavsdk_server(grpc_port, udp_port)
     try:
         # Init Mavlink Connection
-        master = mavutil.mavlink_connection(f'udp:localhost:{self.params.mavsdk_port}', source_system=self.systemID)
-        print(f"Comms: Waiting for Heartbeat at udp:localhost:{self.params.comms_port}")
+        master = mavutil.mavlink_connection(f'udp:localhost:{params.mavsdk_port}', source_system=params.hw_id + 1)
+        
+        print(f"Comms: Waiting for Heartbeat at udp:localhost:{params.comms_port}")
         master.wait_heartbeat()
-        print(f'Comms: Heartbeat from system (system {self.master.target_system} component {self.master.target_system})')
+        print(f'Comms: Heartbeat from system (system {master.target_system} component {master.target_system})')
+        print(f"what is the target id: {master.target_system}")
 
     except Exception as e:
         logging.error(f"Error starting pymavlink: {e}")
