@@ -9,7 +9,6 @@ import subprocess
 
 import psutil  # You may need to install this package
 
-print("in actions")
 # Function to check if MAVSDK server is running
 def check_mavsdk_server_running(port):
     for proc in psutil.process_iter(['pid', 'name']):
@@ -105,6 +104,7 @@ def stop_mavsdk_server(mavsdk_server):
 
 
 async def perform_action(action, altitude):
+    print("HERE")
     print("Starting to perform action...")
     print(f"SIM_MODE: {SIM_MODE}, GRPC_PORT_BASE: {GRPC_PORT_BASE}, HW_ID: {HW_ID}")
 
@@ -171,7 +171,6 @@ async def perform_action(action, altitude):
 
 if __name__ == "__main__":
     # Parse command-line arguments
-    print("running actions.py")
     parser = argparse.ArgumentParser(description="Perform actions with drones.")
     parser.add_argument('--action', type=str, required=True, help='Action to perform: takeoff, land, hold')
     parser.add_argument('--altitude', type=float, default=10, help='Altitude for takeoff')
