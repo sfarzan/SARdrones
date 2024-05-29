@@ -65,7 +65,7 @@ def read_config(filename='config.csv'):
             
 SIM_MODE = True  # or True based on your setting
 GRPC_PORT_BASE = 50050
-UPD_PORT_BASE = 14550
+UDP_PORT_BASE = 14550
 HW_ID = read_hw_id()
 
 # Function for ensuring GPS fix before drone arm to avoid COMMAND_DENIED error
@@ -102,9 +102,10 @@ async def perform_action(action, altitude):
 
     if (SIM_MODE == True):
         grpc_port = GRPC_PORT_BASE + HW_ID
-        udp_port = UPD_PORT_BASE + HW_ID
+        udp_port = UDP_PORT_BASE + HW_ID
     else:
-        grpc_port = GRPC_PORT_BASE - 1
+        grpc_port = GRPC_PORT_BASE
+        udp_port = UDP_PORT_BASE
 
     print(f"gRPC Port: {grpc_port}")
     print(f"UDP Port: {udp_port}")
