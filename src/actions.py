@@ -133,7 +133,6 @@ async def perform_action(action, altitude):
         if action == "takeoff":
             await drone.action.set_takeoff_altitude(float(altitude))
             # await check_gps_fix_and_arm(drone)
-            print("ABOUT TO TAKEOFF")
             await drone.action.takeoff()
         elif action == "land":
             async for is_in_air in drone.telemetry.in_air():
@@ -154,6 +153,8 @@ async def perform_action(action, altitude):
             await drone.action.disarm()
         else:
             print("Invalid action")
+    except Exception as e:
+        print(f"ERROR DURING ACTION: {e}")
     finally:
         if state.is_connected:
             # Terminate MAVSDK server if still running
