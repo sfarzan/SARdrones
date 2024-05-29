@@ -60,6 +60,7 @@ class DroneSetup:
                 logging.info("stdout:", stdout.decode())
                 logging.info("stderr:", stderr.decode())
             else:
+                print("doing run mission script wait")
                 process.wait()
                 logging.info("Mission script completed successfully.")
                 return True, "Mission script completed successfully."
