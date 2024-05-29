@@ -9,6 +9,7 @@ import subprocess
 
 import psutil  # You may need to install this package
 
+print("in actions")
 # Function to check if MAVSDK server is running
 def check_mavsdk_server_running(port):
     for proc in psutil.process_iter(['pid', 'name']):

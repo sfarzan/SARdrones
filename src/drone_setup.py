@@ -105,7 +105,7 @@ class DroneSetup:
             # altitude = float(self.drone_config.mission) - 10
             altitude = 10  # Limit altitude to 50m
             logging.info(f"Starting Takeoff to {altitude}m")
-            success, message = self.run_mission_script(f"python3 ../actions.py --action=takeoff --altitude={altitude}")
+            success, message = self.run_mission_script(f"/bin/python /home/ander/Desktop/SARdrones/actions.py --action=takeoff --altitude={altitude}")
         
         # If the mission is to land
         elif self.drone_config.mission == 101:
