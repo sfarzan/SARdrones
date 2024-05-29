@@ -5,8 +5,9 @@ from mavsdk import System, telemetry
 import glob
 import os
 import subprocess
-
-
+import logging
+from src.params import Params as params
+from pymavlink import mavutil
 import psutil  # You may need to install this package
 
 # Function to check if MAVSDK server is running
@@ -103,6 +104,105 @@ def stop_mavsdk_server(mavsdk_server):
     mavsdk_server.terminate()
 
 
+def arm_drone(drone):
+    drone.mav.command_long_send(
+        drone.mav.command_long_send(
+            drone.target_system,
+            drone.target_component,
+            mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+            0,
+            1, 0, 0, 0, 0, 0, 0)
+        )
+    drone.motors_armed_wait()
+    print("Vehicle armed")
+        # Wait for the drone to arm
+    ack = drone.recv_match(type='COMMAND_ACK', blocking=True)
+    if ack.command == mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM and ack.result == mavutil.mavlink.MAV_RESULT_ACCEPTED:
+        print("Drone armed successfully.")
+    else:
+        raise Exception("Arming the drone failed with result: {}".format(ack.result))
+
+def disarm_drone(master):
+    """
+    Disarm the drone.
+    """
+    master.mav.command_long_send(
+        master.target_system,
+        master.target_component,
+        mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+        0,
+        0,  # 1 to arm, 0 to disarm
+        0, 0, 0, 0, 0, 0)
+
+    # Wait for the acknowledgment
+    ack = master.recv_match(type='COMMAND_ACK', blocking=True)
+    if ack.command == mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM and ack.result == mavutil.mavlink.MAV_RESULT_ACCEPTED:
+        print("Drone disarmed successfully.")
+    else:
+        raise Exception("Disarming the drone failed with result: {}".format(ack.result))
+    
+def takeoff(master, altitude=10):
+    """
+    Command the drone to take off to the specified altitude.
+    """
+    master.mav.command_long_send(
+        master.target_system,
+        master.target_component,
+        mavutil.mavlink.MAV_CMD_NAV_TAKEOFF,
+        0,
+        0, 0, 0, 0, 0, 0,
+        altitude)  # Target altitude in meters
+
+    # Wait for the acknowledgment
+    ack = master.recv_match(type='COMMAND_ACK', blocking=True)
+    if ack.command == mavutil.mavlink.MAV_CMD_NAV_TAKEOFF and ack.result == mavutil.mavlink.MAV_RESULT_ACCEPTED:
+        print("Takeoff command accepted.")
+    else:
+        raise Exception("Takeoff command failed with result: {}".format(ack.result))
+
+def land(master):
+    """
+    Command the drone to land.
+    """
+    master.mav.command_long_send(
+        master.target_system,
+        master.target_component,
+        mavutil.mavlink.MAV_CMD_NAV_LAND,
+        0,
+        0, 0, 0, 0, 0, 0, 0)
+
+    # Wait for the acknowledgment
+    ack = master.recv_match(type='COMMAND_ACK', blocking=True)
+    if ack.command == mavutil.mavlink.MAV_CMD_NAV_LAND and ack.result == mavutil.mavlink.MAV_RESULT_ACCEPTED:
+        print("Land command accepted.")
+    else:
+        raise Exception("Land command failed with result: {}".format(ack.result))
+
+def hold_position(master):
+    """
+    Hold the current position and altitude using MAV_CMD_NAV_LOITER_UNLIM.
+    """
+    # Read current position from the vehicle's global position estimate
+    msg = master.recv_match(type='GLOBAL_POSITION_INT', blocking=True)
+    if msg is not None:
+        # Extract current position and altitude
+        lat = msg.lat / 1e7
+        lon = msg.lon / 1e7
+        alt = msg.alt / 1e3  # Convert from mm to meters
+
+        # Send loiter command to the vehicle
+        master.mav.command_long_send(
+            master.target_system,  # target_system
+            master.target_component,  # target_component
+            mavutil.mavlink.MAV_CMD_NAV_LOITER_UNLIM,  # command
+            0,  # confirmation
+            0, 0,  # param1-2 (not used)
+            0,  # param3 (Loiter radius, set to 0 for point loiter)
+            float('nan'),  # param4 (Yaw angle, NaN to maintain current yaw heading mode)
+            int(lat * 1e7),  # param5 (Latitude)
+            int(lon * 1e7),  # param6 (Longitude)
+            alt)  # param7 (Altitude)
+
 async def perform_action(action, altitude):
     print("Starting to perform action...")
     print(f"SIM_MODE: {SIM_MODE}, GRPC_PORT_BASE: {GRPC_PORT_BASE}, HW_ID: {HW_ID}")
@@ -114,55 +214,37 @@ async def perform_action(action, altitude):
     print(f"UDP Port: {udp_port}")
     
     # Start mavsdk_server
-    mavsdk_server = start_mavsdk_server(grpc_port, udp_port)
-    
-    drone = System(mavsdk_server_address="localhost", port=grpc_port)
-    print("Attempting to connect to drone...")
-    await drone.connect(system_address=f"udp://:{udp_port}")
+    # mavsdk_server = start_mavsdk_server(grpc_port, udp_port)
+    try:
+        # Init Mavlink Connection
+        master = mavutil.mavlink_connection(f'udp:localhost:{self.params.mavsdk_port}', source_system=self.systemID)
+        print(f"Comms: Waiting for Heartbeat at udp:localhost:{self.params.comms_port}")
+        master.wait_heartbeat()
+        print(f'Comms: Heartbeat from system (system {self.master.target_system} component {self.master.target_system})')
 
-    print("Checking connection state...")
-    async for state in drone.core.connection_state():
-        if state.is_connected:
-            print(f"Drone connected on UDP Port: {udp_port} and gRPC Port: {grpc_port}")
-            break
-    else:
-        print("Could not establish a connection with the drone.")
+    except Exception as e:
+        logging.error(f"Error starting pymavlink: {e}")
+        return None
 
     # Perform the action
     try:
         if action == "takeoff":
-            await drone.action.set_takeoff_altitude(float(altitude))
-            # await check_gps_fix_and_arm(drone)
-            await drone.action.takeoff()
+            arm_drone(master)
+            takeoff(master, altitude)
         elif action == "land":
-            async for is_in_air in drone.telemetry.in_air():
-                if not is_in_air:
-                    print("The drone is landed.")
-                    break
-                else:
-                    await drone.action.hold()  # Switch to Hold mode
-                    await asyncio.sleep(1)  # Wait for a short period
-                    await drone.action.land()  # Then execute land command
-                    break
+            land(master)
         elif action == "hold":
-            await drone.action.hold()  # Switch to Hold mode
-            pass
+            hold_position(master)
         elif action == "test":
-            await drone.action.arm()
+            arm_drone(master)
             await asyncio.sleep(4)
-            await drone.action.disarm()
+            disarm_drone(master)
         else:
             print("Invalid action")
     except Exception as e:
         print(f"ERROR DURING ACTION: {e}")
     finally:
-        if state.is_connected:
-            # Terminate MAVSDK server if still running
-            is_running, pid = check_mavsdk_server_running(grpc_port)
-            if is_running:
-                print(f"Terminating MAVSDK server running on port {grpc_port}...")
-                psutil.Process(pid).terminate()
-                psutil.Process(pid).wait()  # Wait for the process to actually terminate
+        master.close()
 
 
 if __name__ == "__main__":
@@ -176,3 +258,4 @@ if __name__ == "__main__":
     # Run the main event loop
     loop = asyncio.get_event_loop()
     loop.run_until_complete(perform_action(args.action, args.altitude))
+
