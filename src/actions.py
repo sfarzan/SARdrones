@@ -78,6 +78,7 @@ def disarm_drone(master):
     """
     Disarm the drone.
     """
+    print("Disarming the drone...")
     master.mav.command_long_send(
         master.target_system,
         master.target_component,
@@ -97,6 +98,7 @@ def takeoff(master, altitude=10):
     """
     Command the drone to take off to the specified altitude.
     """
+    print(f"Taking off to {altitude} meters...")
     master.mav.command_long_send(
         master.target_system,
         master.target_component,
@@ -116,6 +118,7 @@ def land(master):
     """
     Command the drone to land.
     """
+    print("Landing...")
     master.mav.command_long_send(
         master.target_system,
         master.target_component,
