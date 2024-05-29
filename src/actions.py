@@ -131,9 +131,9 @@ async def perform_action(action, altitude):
     # Perform the action
     try:
         if action == "takeoff":
-            print("TRYING TO TAKEOFF")
             await drone.action.set_takeoff_altitude(float(altitude))
             # await check_gps_fix_and_arm(drone)
+            print("ABOUT TO TAKEOFF")
             await drone.action.takeoff()
         elif action == "land":
             async for is_in_air in drone.telemetry.in_air():
