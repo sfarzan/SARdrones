@@ -9,6 +9,7 @@ import logging
 from params import Params as params
 from pymavlink import mavutil
 import psutil  # You may need to install this package
+import time
 
 
 def read_config(filename='config.csv'):
@@ -65,7 +66,6 @@ def arm_drone(drone):
         mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
         0,
         1, 0, 0, 0, 0, 0, 0)
-    # drone.mav.motors_armed_wait()
     # print("Vehicle armed")
         # Wait for the drone to arm
     ack = drone.recv_match(type='COMMAND_ACK', blocking=True)
@@ -73,6 +73,12 @@ def arm_drone(drone):
         print("Drone armed successfully.")
     else:
         raise Exception("Arming the drone failed with result: {}".format(ack.result))
+    try:
+        drone.motors_armed_wait()
+        print("Motors armed")
+    except Exception as e:
+        print(f"Error waiting for motors to arm: {e}")
+
 
 def disarm_drone(master):
     """
@@ -113,6 +119,15 @@ def takeoff(master, altitude=10):
         print("Takeoff command accepted.")
     else:
         raise Exception("Takeoff command failed with result: {}".format(ack.result))
+    
+    print("Waiting for takeoff...")
+
+    while True:
+        msg = master.recv_match(type='GLOBAL_POSITION_INT', blocking=True)
+        if msg and msg.relative_alt >= altitude * 1000 * 0.95:  # Allow a small tolerance
+            print(f"Reached target altitude: {msg.relative_alt / 1000.0} meters")
+            break
+        time.sleep(0.1)
 
 def land(master):
     """
