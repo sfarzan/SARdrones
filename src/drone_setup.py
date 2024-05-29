@@ -64,6 +64,7 @@ class DroneSetup:
             else:
                 print("post open, pre wait")
                 process.wait()
+                print(f"return code: {process.returncode}")
                 logging.info("Mission script completed successfully.")
                 return True, "Mission script completed successfully."
         except subprocess_module.CalledProcessError as e:
