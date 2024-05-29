@@ -6,7 +6,7 @@ import glob
 import os
 import subprocess
 import logging
-from src.params import Params as params
+from params import Params as params
 from pymavlink import mavutil
 import psutil  # You may need to install this package
 
