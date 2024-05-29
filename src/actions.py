@@ -115,7 +115,7 @@ async def perform_action(action, altitude):
     
     # Start mavsdk_server
     mavsdk_server = start_mavsdk_server(grpc_port, udp_port)
-    
+    print("MAVSDK SERVER SET")
     
     drone = System(mavsdk_server_address="localhost", port=grpc_port)
     print("Attempting to connect to drone...")
@@ -133,7 +133,7 @@ async def perform_action(action, altitude):
     try:
         if action == "takeoff":
             await drone.action.set_takeoff_altitude(float(altitude))
-            await check_gps_fix_and_arm(drone)
+            # await check_gps_fix_and_arm(drone)
             await drone.action.takeoff()
         elif action == "land":
             async for is_in_air in drone.telemetry.in_air():
