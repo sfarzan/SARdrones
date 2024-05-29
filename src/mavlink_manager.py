@@ -34,8 +34,7 @@ class MavlinkManager:
                 #Append Connection for Pymavlink Comms
                 endpoints.append(f"-e 127.0.0.1:{self.params.comms_port}")
                 
-                if self.params.serial_mavlink:
-                    endpoints.append(f"-e 127.0.0.1:{self.params.mavsdk_port}")
+                endpoints.append(f"-e 127.0.0.1:{self.params.mavsdk_port}")
 
                 # if self.params.shared_gcs_port:
                 #     endpoints.append(f"-e {self.drone_config.config['gcs_ip']}:{self.params.gcs_mavlink_port}")
