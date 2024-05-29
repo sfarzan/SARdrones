@@ -14,6 +14,7 @@ class DroneSetup:
         self.params = params
         self.last_logged_mission = None  # Add this line
         self.last_logged_state = None  # Add this line
+        self.is_actions_present()
 
     def synchronize_time(self):
         if self.params.online_sync_time:
@@ -69,6 +70,16 @@ class DroneSetup:
             logging.error(f"Mission script encountered an error: {e}")
             return False, f"Mission script encountered an error: {e}"
         
+    def is_actions_present(self):
+        # Get the directory of the current file
+        current_directory = os.path.dirname(os.path.abspath(__file__))
+        
+        # Define the path to actions.py
+        actions_path = os.path.join(current_directory, 'actions.py')
+        
+        # Check if actions.py exists in the current directory
+        if os.path.isfile(actions_path):
+            print("actions.py is present in the same directory.")
         
         
     def schedule_mission(self):
