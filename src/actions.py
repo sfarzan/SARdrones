@@ -104,16 +104,11 @@ def stop_mavsdk_server(mavsdk_server):
 
 
 async def perform_action(action, altitude):
-    print("HERE")
     print("Starting to perform action...")
     print(f"SIM_MODE: {SIM_MODE}, GRPC_PORT_BASE: {GRPC_PORT_BASE}, HW_ID: {HW_ID}")
 
-    if (SIM_MODE == True):
-        grpc_port = GRPC_PORT_BASE + HW_ID
-        udp_port = UDP_PORT_BASE + HW_ID
-    else:
-        grpc_port = GRPC_PORT_BASE
-        udp_port = UDP_PORT_BASE
+    grpc_port = GRPC_PORT_BASE
+    udp_port = UDP_PORT_BASE
 
     print(f"gRPC Port: {grpc_port}")
     print(f"UDP Port: {udp_port}")
