@@ -34,7 +34,7 @@ def start_mavsdk_server(grpc_port, udp_port):
     return mavsdk_server
 
 
-def read_hw_id():
+def read_hw_id(hw_id = None):
     if hw_id is not None:
         return hw_id
 
