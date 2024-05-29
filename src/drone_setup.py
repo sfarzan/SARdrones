@@ -50,7 +50,7 @@ class DroneSetup:
         """
         try:
             print("pre subprocess open")
-            process = subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            process = subprocess.Popen(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             if self.drone_config.mission == 1:
                 while process.poll() is None and self.drone_config.mission != 2 and self.drone_config.mission != 101:
                     time.sleep(1)
