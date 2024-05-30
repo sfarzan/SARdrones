@@ -99,6 +99,26 @@ def disarm_drone(master):
         print("Drone disarmed successfully.")
     else:
         raise Exception("Disarming the drone failed with result: {}".format(ack.result))
+
+def guided_mode(master):
+    """
+    Set the drone to guided mode.
+    """
+    print("Setting the drone to guided mode...")
+    master.mav.command_long_send(
+        master.target_system,
+        master.target_component,
+        mavutil.mavlink.MAV_CMD_DO_SET_MODE,
+        0,
+        4,  # Mode 4: Guided mode
+        0, 0, 0, 0, 0, 0)
+
+    # Wait for the acknowledgment
+    ack = master.recv_match(type='COMMAND_ACK', blocking=True)
+    if ack.command == mavutil.mavlink.MAV_CMD_DO_SET_MODE and ack.result == mavutil.mavlink.MAV_RESULT_ACCEPTED:
+        print("Guided mode set successfully.")
+    else:
+        raise Exception("Setting the drone to guided mode failed with result: {}".format(ack.result))
     
 def takeoff(master, altitude=10):
     """
@@ -201,6 +221,7 @@ async def perform_action(action, altitude):
     try:
         if action == "takeoff":
             arm_drone(master)
+            guided_mode(master)
             takeoff(master, altitude)
         elif action == "land":
             land(master)
