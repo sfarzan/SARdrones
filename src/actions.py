@@ -77,11 +77,11 @@ def arm_drone(drone):
         print("Drone armed successfully.")
     else:
         raise Exception("Arming the drone failed with result: {}".format(ack.result))
-    # try:
-    #     drone.motors_armed_wait()
-    #     print("Motors armed")
-    # except Exception as e:
-    #     print(f"Error waiting for motors to arm: {e}")
+    try:
+        drone.motors_armed_wait()
+        print("Motors armed")
+    except Exception as e:
+        print(f"Error waiting for motors to arm: {e}")
 
 
 def disarm_drone(master):
@@ -142,7 +142,7 @@ def guided_mode(master):
     # else:
     #     raise Exception("Setting the drone to guided mode failed with result: {}".format(ack.result))
     
-def takeoff(master, altitude=10):
+def takeoff(master, altitude=20):
     """
     Command the drone to take off to the specified altitude.
     """
@@ -277,7 +277,7 @@ if __name__ == "__main__":
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Perform actions with drones.")
     parser.add_argument('--action', type=str, required=True, help='Action to perform: takeoff, land, hold')
-    parser.add_argument('--altitude', type=float, default=10, help='Altitude for takeoff')
+    parser.add_argument('--altitude', type=float, default=20, help='Altitude for takeoff')
 
     args = parser.parse_args()
 
