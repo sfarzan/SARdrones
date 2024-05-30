@@ -348,6 +348,7 @@ class DroneCommunicator_HW:
             if drone.gcs_msn_ack is False:
                 self.ack_count = 0 # reset the ack count until all drones acks have arrived
                 return False
+        print("All drones have acked")
         if self.drone_config.mission != self.drone_config.gcs_msn and self.drone_config.prev_mission != self.drone_config.gcs_msn:
             print(f"Changing to mission from gcs: {self.drone_config.gcs_msn}")
             self.drone_config.mission = self.drone_config.gcs_msn
@@ -356,7 +357,7 @@ class DroneCommunicator_HW:
     def send_drone_ack(self): # broadcast 10 times
         self.check_all_drone_ack()
         if self.ack_count < 10 and self.drone_config.gcs_msn_ack is True and self.drone_config.gcs_msn != 0:
-            # print(f"sending drone ack {self.ack_count}")
+            print(f"sending drone ack: {self.ack_count}")
             self.master.mav.statustext_send(
                 mavutil.mavlink.MAV_SEVERITY_INFO,
                 f"msn {self.drone_config.gcs_msn} ack".encode('utf-8')
