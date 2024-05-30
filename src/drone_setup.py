@@ -69,6 +69,8 @@ class DroneSetup:
             #     logging.info("Mission script completed successfully.")
             #     return True, "Mission script completed successfully."
             subprocess_module.run(command.split(), check=True)
+            logging.info("Mission script completed successfully.")
+            return True, "Mission script completed successfully."
         except subprocess_module.CalledProcessError as e:
             logging.error(f"Mission script encountered an error: {e}")
             return False, f"Mission script encountered an error: {e}"

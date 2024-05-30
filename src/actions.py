@@ -12,9 +12,10 @@ import psutil  # You may need to install this package
 import time
 import threading
 from concurrent.futures import ThreadPoolExecutor
+import sys
 
-stop_flag = threading.Event()
-executor = ThreadPoolExecutor(max_workers=10)
+# stop_flag = threading.Event()
+# executor = ThreadPoolExecutor(max_workers=10)
 
 def read_config(filename='config.csv'):
     print("Reading drone configuration...")
@@ -284,7 +285,7 @@ async def perform_action(action, altitude):
             await drone.action.arm()
 
             print("-- Taking off")
-            await drone.action.takeoff()
+            await drone.action.takeoff(altitude)
 
             await asyncio.sleep(10)
 
@@ -329,5 +330,6 @@ if __name__ == "__main__":
     # Run the main event loop
     loop = asyncio.get_event_loop()
     loop.run_until_complete(perform_action(args.action, args.altitude))
-    stop_flag.set()
+    # stop_flag.set()
+    sys.exit("Script executed successfully.")
 
