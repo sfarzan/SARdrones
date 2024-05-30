@@ -7,8 +7,6 @@ import time
 import asyncio
 import psutil  # You may need to install this package
 class DroneSetup:
-    
-    
     def __init__(self, params,drone_config, offboard_controller):
         self.drone_config = drone_config
         self.offboard_controller = offboard_controller
@@ -50,24 +48,6 @@ class DroneSetup:
         Message is a string describing the outcome or error.
         """
         try:
-            # print("pre subprocess open")
-            # process = subprocess_module.Popen(command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            # if self.drone_config.mission == 1:
-            #     while process.poll() is None and self.drone_config.mission != 2 and self.drone_config.mission != 101:
-            #         time.sleep(1)
-            #     if self.drone_config.mission == 2 or self.drone_config.mission == 101:
-            #         process.terminate()
-            #         logging.info("Swarm Command Recieved - Terminating Search Path")
-            #         return True, "Mission script completed successfully."
-            #     stdout, stderr = process.communicate()
-            #     logging.info("stdout:", stdout.decode())
-            #     logging.info("stderr:", stderr.decode())
-            # else:
-            #     print("post open, pre wait")
-            #     process.wait()
-            #     print(f"return code: {process.returncode}")
-            #     logging.info("Mission script completed successfully.")
-            #     return True, "Mission script completed successfully."
             subprocess_module.run(command.split(), check=True)
             logging.info("Mission script completed successfully.")
             return True, "Mission script completed successfully."
@@ -97,6 +77,7 @@ class DroneSetup:
         # Initialize success flag and message
         success = False
         message = ""
+        print("check mission")
         
         # If the mission is 1 (Drone Show) or 2 (Swarm Mission)
         if self.drone_config.mission in [1, 2]:
@@ -120,7 +101,7 @@ class DroneSetup:
         # If the mission is to take off to a certain altitude
         elif 10 <= self.drone_config.mission < 100:
             # altitude = float(self.drone_config.mission) - 10
-            altitude = 20  # Limit altitude to 50m
+            altitude = 10  # Limit altitude to 50m
             logging.info(f"Starting Takeoff to {altitude}m")
             success = self.run_mission_script(f"python3 /home/ander/Desktop/SARdrones/src/actions.py --action=takeoff --altitude={altitude}")
         
