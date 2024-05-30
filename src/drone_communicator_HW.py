@@ -105,6 +105,8 @@ class DroneCommunicator_HW:
 
     def update_state(self, data):
         msg_type = data.get_type()
+        if data.get_srcSystem() == 255:
+            print(f"Received message from GCS: {data}")
         if msg_type in message_types: # array of message types are at top of file
             # Ensures Drone_config object will contain position information - Also helps to filter out non-drone systems
             hw_id = data.get_srcSystem()
