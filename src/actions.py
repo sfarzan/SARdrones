@@ -14,8 +14,8 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 import sys
 
-# stop_flag = threading.Event()
-# executor = ThreadPoolExecutor(max_workers=10)
+stop_flag = threading.Event()
+executor = ThreadPoolExecutor(max_workers=10)
 
 def read_config(filename='config.csv'):
     print("Reading drone configuration...")
@@ -275,8 +275,8 @@ async def perform_action(action, altitude):
         logging.error(f"Error starting pymavlink: {e}")
         return None
 
-    # heartbeat_thread = threading.Thread(target=send_heartbeat, args=(master,))
-    # heartbeat_thread.start()
+    heartbeat_thread = threading.Thread(target=send_heartbeat, args=(drone,))
+    heartbeat_thread.start()
     time.sleep(2)
     # Perform the action
     try:
@@ -309,15 +309,15 @@ async def perform_action(action, altitude):
     except Exception as e:
         print(f"ERROR DURING ACTION: {e}")
     finally:
-        # heartbeat_thread.join()
+        stop_flag.set()
+        heartbeat_thread.join()
         executor.shutdown()
         # master.close()
 
-def send_heartbeat(master):
-    while not stop_flag.is_set():
-        # print("sending heartbeat...")
-        master.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_GCS, mavutil.mavlink.MAV_AUTOPILOT_INVALID, 0, 0, 0)
-        time.sleep(1)
+async def send_heartbeat(drone):
+    while True:
+        await drone.core.send_heartbeat()
+        await asyncio.sleep(1)  # Adjust the interval as needed
 
 if __name__ == "__main__":
     # Parse command-line arguments
@@ -330,6 +330,5 @@ if __name__ == "__main__":
     # Run the main event loop
     loop = asyncio.get_event_loop()
     loop.run_until_complete(perform_action(args.action, args.altitude))
-    # stop_flag.set()
-    sys.exit("Script executed successfully.")
+    sys.exit(0)
 
