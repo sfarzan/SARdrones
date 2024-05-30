@@ -2,7 +2,7 @@ import csv
 import requests
 from params import Params as params_
 
-def read_swarm(self):
+def read_swarm():
     """
     Reads the swarm configuration file, which includes the list of nodes in the swarm.
     The function supports both online and offline modes.
@@ -10,7 +10,7 @@ def read_swarm(self):
     In offline mode, it reads the swarm configuration file from the local disk.
     """
     if params_.offline_swarm:
-        return read_file('swarm.csv', 'local CSV file', self.hw_id)
+        return read_file('swarm.csv', 'local CSV file', params_.hw_id)
     else:
         print("Loading swarm configuration from online source...")
         try:
@@ -24,7 +24,7 @@ def read_swarm(self):
             with open('online_swarm.csv', 'w') as f:
                 f.write(response.text)
 
-            return self.read_file('online_swarm.csv', 'online CSV file', self.hw_id)
+            return read_file('online_swarm.csv', 'online CSV file', params_.hw_id)
 
         except Exception as e:
             print(f"Failed to load online swarm configuration: {e}")
