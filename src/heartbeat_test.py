@@ -10,7 +10,7 @@ def read_swarm():
     In offline mode, it reads the swarm configuration file from the local disk.
     """
     if params_.offline_swarm:
-        return read_file('/Desktop/SARDrones/swarm.csv', 'local CSV file', params_.hw_id)
+        return read_file('~/Desktop/SARDrones/swarm.csv', 'local CSV file', params_.hw_id)
     else:
         print("Loading swarm configuration from online source...")
         try:
