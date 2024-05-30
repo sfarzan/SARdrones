@@ -295,28 +295,28 @@ async def perform_action(action, altitude):
             print("-- Taking off")
             await drone.action.takeoff()
 
-            await asyncio.sleep(10)
+            # await asyncio.sleep(10)
 
-            print("-- Landing")
-            await drone.action.land()
+            # print("-- Landing")
+            # await drone.action.land()
 
-            status_text_task.cancel()
-            # arm_drone(master)
-            # # guided_mode(master)
-            # takeoff(master, altitude)
+            # status_text_task.cancel()
         elif action == "land":
             print("-- Landing")
             await drone.action.land()
+            # status_text_task.cancel()
         #     land(master)
         elif action == "hold":
             print("-- Holding position")
-            await check_gps_fix_and_arm(drone)
+            # await check_gps_fix_and_arm(drone)
             await drone.action.hold()
+            # status_text_task.cancel()
         else:
             print("Invalid action")
     except Exception as e:
         print(f"ERROR DURING ACTION: {e}")
     finally:
+        status_text_task.cancel()
         return
         # stop_flag.set()
         # heartbeat_thread.join()
