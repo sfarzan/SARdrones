@@ -241,10 +241,10 @@ async def perform_action(action, altitude):
     # mavsdk_server = start_mavsdk_server(grpc_port, udp_port)
     try:
         drone = System(sysid=200+params.hw_id)
-        drone_id_param = None
         await drone.connect(system_address=f"udp://:{params.mavsdk_port}")
+        drone_id_param = await drone.param.get_param_int("SYSID_THISMAV")
         while drone_id_param != params.hw_id:
-            print(f"wrong id: {drone._sysid} vs {params.hw_id}")
+            print(f"wrong id: {drone_id_param} vs {params.hw_id}")
             await drone.connect(system_address=f"udp://:{params.mavsdk_port}")
             # get the system id parameter
             drone_id_param = await drone.param.get_param_int("SYSID_THISMAV")
