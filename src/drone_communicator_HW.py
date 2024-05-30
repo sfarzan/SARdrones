@@ -357,7 +357,7 @@ class DroneCommunicator_HW:
     def send_drone_ack(self): # broadcast 10 times
         self.check_all_drone_ack()
         if self.ack_count < 10 and self.drone_config.gcs_msn_ack is True and self.drone_config.gcs_msn != 0:
-            # print(f"sending drone ack: {self.ack_count}")
+            print(f"sending drone ack: {self.ack_count}")
             self.master.mav.statustext_send(
                 mavutil.mavlink.MAV_SEVERITY_INFO,
                 f"msn {self.drone_config.gcs_msn} ack".encode('utf-8')
