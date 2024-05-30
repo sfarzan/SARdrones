@@ -249,6 +249,7 @@ async def perform_action(action, altitude):
         drone = System(sysid=200+params.hw_id)
         await drone.connect(system_address=f"udp://:{params.mavsdk_port}")
         drone_id_param = await drone.param.get_param_int("MAV_SYS_ID")
+
         while drone_id_param != params.hw_id:
             print(f"wrong id: {drone_id_param} vs {params.hw_id}")
             await drone.connect(system_address=f"udp://:{params.mavsdk_port}")
@@ -333,5 +334,6 @@ if __name__ == "__main__":
     # Run the main event loop
     loop = asyncio.get_event_loop()
     loop.run_until_complete(perform_action(args.action, args.altitude))
+    print(f"Action: {args.action} completed.")
     sys.exit(0)
 
