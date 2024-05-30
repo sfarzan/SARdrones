@@ -4,26 +4,33 @@ import subprocess
 import psutil  # Import psutil to find and kill existing MAVSDK server processes
 from mavsdk import System
 from mavsdk.offboard import AccelerationNed, OffboardError, PositionNedYaw, VelocityNedYaw
-from src.params import Params as params
-from pymavlink import mavutil
+import functions.global_to_local
+import csv
+import time
+
 
 class OffboardController:
     """
     This class encapsulates the logic to control a drone in offboard mode
     using the MAVSDK library.
     """
-    def __init__(self, drone_config, mavsdk_server_address='localhost'):
+    def __init__(self, drone_config, params, mavsdk_server_address='localhost'):
         self.drone_config = drone_config
         self.offboard_follow_update_interval = 0.2
-        self.port = params.mavsdk_port
+        self.port = 50050 + int(self.drone_config.hw_id)
         self.upd_port = 14550 + int(self.drone_config.hw_id)
         self.mavsdk_server_address = mavsdk_server_address
         self.is_offboard = False
         self.mavsdk_server_process = None
         self.use_filter = True
         self.use_acceleration = True
+        self.params = params
+        self.global_position_telemetry = None
+
         
         self.stop_existing_mavsdk_server(self.port)
+
+        
 
     def start_swarm(self):
         self.is_offboard = True
@@ -33,94 +40,60 @@ class OffboardController:
             self.drone_config.calculate_setpoints()
 
     def stop_existing_mavsdk_server(self, port):
+        for proc in psutil.process_iter():
+            try:
+                if "mavsdk_server" in proc.name():
+                    for conns in proc.connections(kind='inet'):
+                        if conns.laddr.port == port:
+                            proc.terminate()
+                            logging.info(f"Terminated existing MAVSDK server on port {port}")
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                pass
+
+    async def print_status_text(self):
         try:
-            self.master.close()
-            logging.info(f"Terminated existing pymavlink on port {port}")
-        except Exception as e:
-            logging.error(f"nothing closed: {e}")
-            return None
-
-    def start_mavsdk_server(self, port):
-        try:
-            # Init Mavlink Connection
-            self.master = mavutil.mavlink_connection(f'udp:localhost:{self.params.mavsdk_port}', source_system=self.systemID)
-            print(f"Comms: Waiting for Heartbeat at udp:localhost:{self.params.comms_port}")
-            self.master.wait_heartbeat()
-            print(f'Comms: Heartbeat from system (system {self.master.target_system} component {self.master.target_system})')
-
-        except Exception as e:
-            logging.error(f"Error starting pymavlink: {e}")
-            return None
-
-    def stop_mavsdk_server(self):
-        try:
-            self.master.close()
-            logging.info("pymavlink terminated.")
-        except Exception as e:
-            logging.error(f"Error stopping pymavlink: {e}")
-
+            async for status_text in self.drone.telemetry.status_text():
+                print(f"Status: {status_text.type}: {status_text.text}")
+        except asyncio.CancelledError:
+            return
 
     async def connect(self):
-        self.start_mavsdk_server(self.port)
         # self.drone = System(self.mavsdk_server_address, self.port)
         
         # await self.drone.connect(f'udp://:{self.upd_port}')
 
-        logging.info("Waiting for drone to connect...")
+        # logging.info("Waiting for drone to connect...")
+        # async for state in self.drone.core.connection_state():
+        #     if state.is_connected:
+        #         logging.info("Drone discovered")
+        #         break
+        self.drone = System(sysid=200+self.params.hw_id)
+        await self.drone.connect(system_address=f"udp://:{self.params.mavsdk_port}")
+        drone_id_param = await self.drone.param.get_param_int("MAV_SYS_ID")
+
+        while drone_id_param != self.params.hw_id:
+            print(f"wrong id: {drone_id_param} vs {self.params.hw_id}")
+            await self.drone.connect(system_address=f"udp://:{self.params.mavsdk_port}")
+            # get the system id parameter
+            drone_id_param = await self.drone.param.get_param_int("MAV_SYS_ID")
+        print(f"sysid = {self.drone._sysid} drone_id_param = {drone_id_param}")
+
+        status_text_task = asyncio.ensure_future(self.print_status_text())
+
+        print("Waiting for drone to connect...")
         async for state in self.drone.core.connection_state():
             if state.is_connected:
-                logging.info("Drone discovered")
+                print(f"-- Connected to drone!")
                 break
-        # Removed redundant call to start_mavsdk_server
 
-    async def start_offboard(self):
-        """
-        Start the offboard mode using pymavlink.
-        """
-        try:
-            master = self.master  # Ensure master is the pymavlink connection object
+        print("Waiting for drone to have a global position estimate...")
+        async for health in self.drone.telemetry.health():
+            if health.is_global_position_ok and health.is_home_position_ok:
+                print("-- Global position estimate OK")
+                break
 
-            # Set the mode to OFFBOARD
-            master.mav.command_long_send(
-                master.target_system,
-                master.target_component,
-                mavutil.mavlink.MAV_CMD_DO_SET_MODE,
-                0,
-                mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
-                0, 6, 0, 0, 0, 0)  # The '6' here corresponds to OFFBOARD mode for PX4
 
-            # Confirm the mode is set
-            ack = master.recv_match(type='COMMAND_ACK', blocking=True)
-            if ack.command != mavutil.mavlink.MAV_CMD_DO_SET_MODE or ack.result != mavutil.mavlink.MAV_RESULT_ACCEPTED:
-                logging.error(f"Setting offboard mode failed with result: {ack.result}")
-                return
-
-            logging.info("Offboard mode set.")
-
-            # Optionally arm the drone if it's not armed
-            master.mav.command_long_send(
-                master.target_system,
-                master.target_component,
-                mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
-                0,
-                1,  # 1 to arm, 0 to disarm
-                0, 0, 0, 0, 0, 0)
-
-            # Confirm the arming
-            ack = master.recv_match(type='COMMAND_ACK', blocking=True)
-            if ack.command != mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM or ack.result != mavutil.mavlink.MAV_RESULT_ACCEPTED:
-                logging.error(f"Arming the drone failed with result: {ack.result}")
-                return
-
-            logging.info("Drone armed.")
-
-            # Set the offboard flag
-            self.is_offboard = True
-
-        except Exception as e:
-            logging.error(f"Starting offboard mode failed with error: {e}", exc_info=True)
-            return
-
+        asyncio.ensure_future(self.get_global_position_telemetry())
 
     async def set_initial_position(self):
         initial_pos = PositionNedYaw(
@@ -164,9 +137,9 @@ class OffboardController:
 
                 if self.use_acceleration == True:
                     acc_ned = AccelerationNed(acc[0], acc[1], acc[2])
-                    await self.send_position_velocity_acceleration_ned(pos_ned_yaw, vel_ned_yaw, acc_ned)
+                    await self.drone.offboard.set_position_velocity_acceleration_ned(pos_ned_yaw, vel_ned_yaw, acc_ned)
                 else:
-                    await self.send_position_velocity_ned(pos_ned_yaw, vel_ned_yaw)
+                    await self.drone.offboard.set_position_velocity_ned(pos_ned_yaw, vel_ned_yaw)
 
                 logging.debug(f"Maintaining setpoints | Position: {pos} | Velocity: {vel} | Acceleration: {acc}")
 
@@ -182,8 +155,7 @@ class OffboardController:
         finally:
             # Stop the MAVSDK server and set offboard flag to False
             await self.stop_offboard()
-            self.stop_mavsdk_server()
-
+            self.drone._stop_mavsdk_server()
 
 
     async def stop_offboard(self):
@@ -227,29 +199,119 @@ class OffboardController:
         if SAR is False:
             print("Manual Control Initialized")
             await self.stop_offboard()
-    
-    async def send_position_velocity_acceleration_ned(self, pos_ned_yaw, vel_ned_yaw, acc_ned):
-        self.master.mav.set_position_target_local_ned_send(
-            0,  # time_boot_ms (not used)
-            self.master.target_system,  # target_system
-            self.master.target_component,  # target_component
-            mavutil.mavlink.MAV_FRAME_LOCAL_NED,  # coordinate frame
-            0b0000111111000111,  # type_mask (ignore position)
-            pos_ned_yaw.north, pos_ned_yaw.east, pos_ned_yaw.down,  # x, y, z positions
-            vel_ned_yaw.north, vel_ned_yaw.east, vel_ned_yaw.down,  # x, y, z velocities
-            acc_ned.north, acc_ned.east, acc_ned.down,  # x, y, z accelerations
-            0, 0, pos_ned_yaw.yaw  # yaw, yaw_rate (0 for yaw_rate)
-        )
 
-    async def send_position_velocity_ned(self, pos_ned_yaw, vel_ned_yaw):
-        self.master.mav.set_position_target_local_ned_send(
-            0,  # time_boot_ms (not used)
-            self.master.target_system,  # target_system
-            self.master.target_component,  # target_component
-            mavutil.mavlink.MAV_FRAME_LOCAL_NED,  # coordinate frame
-            0b0000111111000111,  # type_mask (ignore acceleration)
-            pos_ned_yaw.north, pos_ned_yaw.east, pos_ned_yaw.down,  # x, y, z positions
-            vel_ned_yaw.north, vel_ned_yaw.east, vel_ned_yaw.down,  # x, y, z velocities
-            0, 0, 0,  # x, y, z accelerations (ignored)
-            0, 0, pos_ned_yaw.yaw  # yaw, yaw_rate (0 for yaw_rate)
-        )
+
+    # ----- CSV SEARCH MODE FUNCTIONS ----- #
+    async def start_csv(self):
+        """
+        Initialize and execute offboard following operations.
+        """
+        await self.connect()
+        await self.set_initial_position()
+        await self.start_offboard()
+        await self.run_drone_csv()
+
+
+    async def run_drone_csv(self):
+        if self.params.SEPERATE_CSV:
+            filename = "../FlightPaths/swarm/processed/Drone " + str(self.params.hw_id) + ".csv"    
+        else:
+            filename = "shapes/active.csv"
+
+        try:
+            altitude_offset = 0
+            trajectory_offset = (0, 0, 0)
+            waypoints = self.read_trajectory_file(filename, trajectory_offset, altitude_offset)
+            home_position_NED = (self.drone_config.position_setpoint_NED['north'], self.drone_config.position_setpoint_NED['east'], self.params.DEFAULT_Z)
+            home_position = self.global_position_telemetry
+            print("HERE")
+            await self.perform_trajectory(self.params.hw_id, self.drone, waypoints, home_position, home_position_NED)
+        except Exception as e:
+            print(f"ERROR INITALIZING CSV: {e}")
+
+
+        # Stop offboard mode
+        await self.stop_offboard()
+
+    def read_trajectory_file(self, filename, trajectory_offset, altitude_offset):
+        waypoints = []
+        with open(filename, newline="") as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                t = float(row["t"])
+                px = float(row["px"]) + trajectory_offset[0]
+                py = float(row["py"]) + trajectory_offset[1]
+                pz = float(row["pz"]) + trajectory_offset[2] - altitude_offset
+                vx = float(row["vx"])
+                vy = float(row["vy"])
+                vz = float(row["vz"])
+                ax = float(row["ax"])
+                ay = float(row["ay"])
+                az = float(row["az"])
+                yaw = float(row["yaw"])
+                mode_code = int(row["mode"])  # Assuming the mode code is in a column named "mode"
+                waypoints.append((t, px, py, pz, vx, vy, vz, ax, ay, az,yaw, mode_code))
+        return waypoints
+
+    async def perform_trajectory(self, drone_id, drone, waypoints, home_position,home_position_NED):
+        print(f"-- Performing trajectory {drone_id}")
+        total_duration = waypoints[-1][0]
+        t = 0
+        last_mode = 0
+        last_waypoint_index = 0
+
+        try: 
+            while t <= total_duration:
+                pos = self.drone_config.position_setpoint_NED
+                vel = self.drone_config.velocity_setpoint_NED
+                acc = [0, 0, 0]  # Assume zero acceleration
+
+                
+                
+                actual_position = self.global_position_telemetry
+
+                local_ned_position = functions.global_to_local.global_to_local(actual_position, home_position)
+                
+                current_waypoint = None
+                for i in range(last_waypoint_index, len(waypoints)):
+                    if t <= waypoints[i][0]:
+                        current_waypoint = waypoints[i]
+                        last_waypoint_index = i
+                        break
+
+                if (self.params.SEPERATE_CSV == True):
+                    position = tuple(a-b for a, b in zip(current_waypoint[1:4], home_position_NED))
+                else:
+                    position = current_waypoint[1:4]
+
+                
+                velocity = current_waypoint[4:7]
+                acceleration = current_waypoint[7:10]
+                yaw = current_waypoint[10]
+                mode_code = current_waypoint[-1]
+                if last_mode != mode_code:
+                    print(f"Drone id: {drone_id+1}: Mode number: {mode_code}")
+                    last_mode = mode_code
+                        
+                await drone.offboard.set_position_velocity_acceleration_ned(
+                    PositionNedYaw(*position, yaw),
+                    VelocityNedYaw(*velocity, yaw),
+                    AccelerationNed(*acceleration)
+                )
+
+                await asyncio.sleep(self.params.STEP_TIME)
+                t += self.params.STEP_TIME
+                
+                if int(t/self.params.STEP_TIME) % 100 == 0:
+                    deviation = [(a - b) for a, b in zip(position, [local_ned_position.north_m, local_ned_position.east_m, local_ned_position.down_m])]
+                    if self.params.SHOW_DEVIATIONS == True:
+                        print(f"Drone {drone_id+1} Deviations: {round(deviation[0], 1)} {round(deviation[1], 1)} {round(deviation[2], 1)}")
+        except Exception as e:
+            print(f"ERROR IN MAIN LOOP{e}")
+
+        print(f"-- Shape completed {drone_id+1}")
+
+    async def get_global_position_telemetry(self):
+        async for global_position in self.drone.telemetry.position():
+            self.global_position_telemetry = global_position
+            pass

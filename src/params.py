@@ -158,6 +158,12 @@ class Params():
     schedule_mission_frequency = 2
     follow_setpoint_frequency = 4
 
+    SEPERATE_CSV = False
+    STEP_TIME = 0.05
+    SHOW_DEVIATIONS = False
+    DEFAULT_Z = 0.83
+
+
 
     class Mission(Enum):
         NONE = 0
