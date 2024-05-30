@@ -104,14 +104,14 @@ def guided_mode(master):
     """
     Set the drone to guided mode.
     """
-    mode = master.mode_mapping()[b'GUIDED']
+    print("Setting the drone to guided mode...")
     master.mav.command_long_send(
         master.target_system,
         master.target_component,
         mavutil.mavlink.MAV_CMD_DO_SET_MODE,
         0,
         mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,  # Bitmask to use custom_mode
-        mode,  # Mode 4: Guided mode
+        4,  # Mode 4: Guided mode
         0, 0, 0, 0, 0)
     
     ack = master.recv_match(type='COMMAND_ACK', blocking=True)
