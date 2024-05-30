@@ -27,7 +27,6 @@ class DroneConfig:
             self.hw_id = self.get_hw_id(_hw_id)
         else:
             self.hw_id = _hw_id
-        self.trigger_time = 0
         self.config = self.read_config()
         self.swarm = self.read_swarm()
         self.state = 0

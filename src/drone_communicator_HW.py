@@ -350,7 +350,8 @@ class DroneCommunicator_HW:
                 return False
         # print("All drones have acked")
         if self.drone_config.mission != self.drone_config.gcs_msn and self.drone_config.prev_mission != self.drone_config.gcs_msn and self.drone_config.mission != Mission.LAND.value:
-            print(f"Changing to mission from gcs: {self.drone_config.gcs_msn}")
+            print(f"Changing to mission from gcs: {self.drone_config.gcs_msn}") # mainly for swarm and csv
+            self.drone_config.state = 1
             self.drone_config.mission = self.drone_config.gcs_msn
         return True
 
