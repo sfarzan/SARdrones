@@ -73,11 +73,11 @@ def arm_drone(drone):
         print("Drone armed successfully.")
     else:
         raise Exception("Arming the drone failed with result: {}".format(ack.result))
-    try:
-        drone.motors_armed_wait()
-        print("Motors armed")
-    except Exception as e:
-        print(f"Error waiting for motors to arm: {e}")
+    # try:
+    #     drone.motors_armed_wait()
+    #     print("Motors armed")
+    # except Exception as e:
+    #     print(f"Error waiting for motors to arm: {e}")
 
 
 def disarm_drone(master):
