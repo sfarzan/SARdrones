@@ -163,7 +163,12 @@ def takeoff(master, altitude=20):
         raise Exception("Takeoff command failed with result: {}".format(ack.result))
     
     print("Waiting for takeoff...")
-
+    master.mav.command_long_send(
+        master.target_system,
+        master.target_component,
+        mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+        0,
+        1, 0, 0, 0, 0, 0, 0)
     while True:
         msg = master.recv_match(type='GLOBAL_POSITION_INT', blocking=True)
         if msg and msg.relative_alt >= altitude * 1000 * 0.95:  # Allow a small tolerance
@@ -239,10 +244,8 @@ async def perform_action(action, altitude):
         logging.error(f"Error starting pymavlink: {e}")
         return None
 
-    heartbeat_thread = threading.Thread(target=send_heartbeat, args=(master,))
-    heartbeat_thread.start()
-    # heartbeat_thread = threading.Thread(target=send_heartbeat)
-    # heartbeat_thread.start(master)
+    # heartbeat_thread = threading.Thread(target=send_heartbeat, args=(master,))
+    # heartbeat_thread.start()
     time.sleep(2)
     # Perform the action
     try:
@@ -263,7 +266,7 @@ async def perform_action(action, altitude):
     except Exception as e:
         print(f"ERROR DURING ACTION: {e}")
     finally:
-        heartbeat_thread.join()
+        # heartbeat_thread.join()
         executor.shutdown()
         master.close()
 

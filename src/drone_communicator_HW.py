@@ -331,16 +331,16 @@ class DroneCommunicator_HW:
     def start_communication(self):
         self.telemetry_thread = threading.Thread(target=self.send_drone_state)
         self.command_thread = threading.Thread(target=self.read_packets)
-        self.heartbeat_thread = threading.Thread(target=self.send_heartbeat)
+        # self.heartbeat_thread = threading.Thread(target=self.send_heartbeat)
         self.telemetry_thread.start()
         self.command_thread.start()
-        self.heartbeat_thread.start()
+        # self.heartbeat_thread.start()
 
     def stop_communication(self):
         self.stop_flag.set()
         self.telemetry_thread.join()
         self.command_thread.join()
-        self.heartbeat_thread.join()
+        # self.heartbeat_thread.join()
         self.executor.shutdown()
 
     def check_all_drone_ack(self): # simple loops that checks all drone acks
