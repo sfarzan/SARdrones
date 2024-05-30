@@ -113,7 +113,7 @@ class DroneSetup:
                     logging.info("Is in Offboard mode. Attempting to stop offboard.")
                     asyncio.run(self.offboard_controller.stop_offboard())
                     asyncio.sleep(1)
-            success = self.run_mission_script("python3 /home/ander/Desktop/SARdrones/src/actions.py --action=land")
+            success, message = self.run_mission_script("python3 /home/ander/Desktop/SARdrones/src/actions.py --action=land")
         
         # If the mission is to hold the position
         elif self.drone_config.mission == 102:
