@@ -295,6 +295,16 @@ class DroneCommunicator_HW:
             if self.drone_config.mission == 2 and self.drone_config.state != 0 and int(self.drone_config.swarm.get('follow')) != 0:
                     self.drone_config.calculate_setpoints()
 
+    def send_heartbeat(self):
+        self.master.mav.heartbeat_send(
+            mavutil.mavlink.MAV_TYPE_GCS,
+            mavutil.mavlink.MAV_AUTOPILOT_INVALID,
+            0,
+            0,
+            0
+        )
+        time.sleep(1)
+
     def decode_status_text(self, text, sys_id): # input text is already split
         sys_id_list = [obj.hw_id for obj in self.drones.values()]
         components = text # format: msn_#_[ack] [ack] is only added if sent from a drone. ignore if from gcs
@@ -323,13 +333,16 @@ class DroneCommunicator_HW:
     def start_communication(self):
         self.telemetry_thread = threading.Thread(target=self.send_drone_state)
         self.command_thread = threading.Thread(target=self.read_packets)
+        self.heartbeat_thread = threading.Thread(target=self.send_heartbeat)
         self.telemetry_thread.start()
         self.command_thread.start()
+        self.heartbeat_thread.start()
 
     def stop_communication(self):
         self.stop_flag.set()
         self.telemetry_thread.join()
         self.command_thread.join()
+        self.heartbeat_thread.join()
         self.executor.shutdown()
 
     def check_all_drone_ack(self): # simple loops that checks all drone acks
