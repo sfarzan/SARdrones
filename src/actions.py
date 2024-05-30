@@ -242,12 +242,12 @@ async def perform_action(action, altitude):
     try:
         drone = System(sysid=200+params.hw_id)
         await drone.connect(system_address=f"udp://:{params.mavsdk_port}")
-        drone_id_param = await drone.param.get_param_int("SYSID_THISMAV")
+        drone_id_param = await drone.param.get_param_int("MAV_SYS_ID")
         while drone_id_param != params.hw_id:
             print(f"wrong id: {drone_id_param} vs {params.hw_id}")
             await drone.connect(system_address=f"udp://:{params.mavsdk_port}")
             # get the system id parameter
-            drone_id_param = await drone.param.get_param_int("SYSID_THISMAV")
+            drone_id_param = await drone.param.get_param_int("MAV_SYS_ID")
         print(f"sysid = {drone._sysid} drone_id_param = {drone_id_param}")
 
         status_text_task = asyncio.ensure_future(print_status_text(drone))
