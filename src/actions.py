@@ -14,8 +14,8 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 import sys
 
-stop_flag = threading.Event()
-executor = ThreadPoolExecutor(max_workers=10)
+# stop_flag = threading.Event()
+# executor = ThreadPoolExecutor(max_workers=10)
 
 def read_config(filename='config.csv'):
     print("Reading drone configuration...")
@@ -40,6 +40,11 @@ HW_ID = params.hw_id
 SIM_MODE = False  # or True based on your setting
 GRPC_PORT_BASE = 50050
 UDP_PORT_BASE = 14550 + HW_ID
+
+# async def send_heartbeat(drone):
+#     while not stop_flag.is_set():
+#         await drone.core.send_heartbeat()
+#         await asyncio.sleep(1)  # Adjust the interval as needed
 
 # Function for ensuring GPS fix before drone arm to avoid COMMAND_DENIED error
 async def check_gps_fix_and_arm(drone):        
@@ -275,8 +280,8 @@ async def perform_action(action, altitude):
         logging.error(f"Error starting pymavlink: {e}")
         return None
 
-    heartbeat_thread = threading.Thread(target=send_heartbeat, args=(drone,))
-    heartbeat_thread.start()
+    # heartbeat_thread = threading.Thread(target=send_heartbeat, args=(drone,))
+    # heartbeat_thread.start()
     time.sleep(2)
     # Perform the action
     try:
@@ -309,15 +314,11 @@ async def perform_action(action, altitude):
     except Exception as e:
         print(f"ERROR DURING ACTION: {e}")
     finally:
-        stop_flag.set()
-        heartbeat_thread.join()
-        executor.shutdown()
+        return
+        # stop_flag.set()
+        # heartbeat_thread.join()
+        # executor.shutdown()
         # master.close()
-
-async def send_heartbeat(drone):
-    while True:
-        await drone.core.send_heartbeat()
-        await asyncio.sleep(1)  # Adjust the interval as needed
 
 if __name__ == "__main__":
     # Parse command-line arguments
