@@ -304,14 +304,14 @@ async def perform_action(action, altitude):
             # arm_drone(master)
             # # guided_mode(master)
             # takeoff(master, altitude)
-        # elif action == "land":
+        elif action == "land":
+            print("-- Landing")
+            await drone.action.land()
         #     land(master)
-        # elif action == "hold":
-        #     hold_position(master)
-        # elif action == "test":
-        #     arm_drone(master)
-        #     await asyncio.sleep(4)
-        #     disarm_drone(master)
+        elif action == "hold":
+            print("-- Holding position")
+            await check_gps_fix_and_arm(drone)
+            await drone.action.hold()
         else:
             print("Invalid action")
     except Exception as e:
@@ -335,5 +335,4 @@ if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     loop.run_until_complete(perform_action(args.action, args.altitude))
     print(f"Action: {args.action} completed.")
-    sys.exit(0)
 
