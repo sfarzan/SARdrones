@@ -239,7 +239,7 @@ async def perform_action(action, altitude):
     try:
         if action == "takeoff":
             arm_drone(master)
-            guided_mode(master)
+            # guided_mode(master)
             takeoff(master, altitude)
         elif action == "land":
             land(master)

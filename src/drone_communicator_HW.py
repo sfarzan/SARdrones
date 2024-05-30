@@ -298,8 +298,8 @@ class DroneCommunicator_HW:
                     self.drone_config.calculate_setpoints()
 
     def send_heartbeat(self):
-        print("sending heartbeat...")
         while not self.stop_flag.is_set():
+            # print("sending heartbeat...")
             self.master.mav.heartbeat_send(mavutil.mavlink.MAV_TYPE_GCS, mavutil.mavlink.MAV_AUTOPILOT_INVALID, 0, 0, 0)
             time.sleep(1)
 
