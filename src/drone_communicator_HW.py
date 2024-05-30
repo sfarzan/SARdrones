@@ -303,6 +303,7 @@ class DroneCommunicator_HW:
             0,
             0
         )
+        logging.info("Heartbeat sent")
         time.sleep(1)
 
     def decode_status_text(self, text, sys_id): # input text is already split
