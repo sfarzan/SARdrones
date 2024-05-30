@@ -242,7 +242,7 @@ async def perform_action(action, altitude):
     try:
         drone = System()
         await drone.connect(system_address=f"udp://:{params.mavsdk_port}")
-        while drone.sysid != params.hw_id:
+        while drone._sysid != params.hw_id:
             await drone.disconnect()
             await drone.connect(system_address=f"udp://:{params.mavsdk_port}")
 
