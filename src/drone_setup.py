@@ -77,7 +77,7 @@ class DroneSetup:
         # Initialize success flag and message
         success = False
         message = ""
-        print("check mission")
+        # print("check mission")
         
         # If the mission is 1 (Drone Show) or 2 (Swarm Mission)
         if self.drone_config.mission in [1, 2]:
