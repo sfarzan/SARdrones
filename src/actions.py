@@ -220,6 +220,13 @@ def hold_position(master):
             int(lon * 1e7),  # param6 (Longitude)
             alt)  # param7 (Altitude)
 
+async def print_status_text(drone):
+    try:
+        async for status_text in drone.telemetry.status_text():
+            print(f"Status: {status_text.type}: {status_text.text}")
+    except asyncio.CancelledError:
+        return
+    
 async def perform_action(action, altitude):
     print("Starting to perform action...")
     print(f"SIM_MODE: {SIM_MODE}, GRPC_PORT_BASE: {GRPC_PORT_BASE}, HW_ID: {HW_ID}")
@@ -233,12 +240,28 @@ async def perform_action(action, altitude):
     # Start mavsdk_server
     # mavsdk_server = start_mavsdk_server(grpc_port, udp_port)
     try:
+        drone = System()
+        await drone.connect(system_address=f"udp://:{params.mavsdk_port}")
+
+        status_text_task = asyncio.ensure_future(print_status_text(drone))
+
+        print("Waiting for drone to connect...")
+        async for state in drone.core.connection_state():
+            if state.is_connected:
+                print(f"-- Connected to drone!")
+                break
+
+        print("Waiting for drone to have a global position estimate...")
+        async for health in drone.telemetry.health():
+            if health.is_global_position_ok and health.is_home_position_ok:
+                print("-- Global position estimate OK")
+                break
         # Init Mavlink Connection
-        master = mavutil.mavlink_connection(f'udp:localhost:{params.mavsdk_port}', source_system=params.hw_id + 1)
+        # master = mavutil.mavlink_connection(f'udp:localhost:{params.mavsdk_port}', source_system=params.hw_id + 1)
         
-        print(f"Comms: Waiting for Heartbeat at udp:localhost:{params.comms_port}")
-        master.wait_heartbeat()
-        print(f'Comms: Heartbeat from system (system {master.target_system} component {master.target_system})')
+        # print(f"Comms: Waiting for Heartbeat at udp:localhost:{params.comms_port}")
+        # master.wait_heartbeat()
+        # print(f'Comms: Heartbeat from system (system {master.target_system} component {master.target_system})')
 
     except Exception as e:
         logging.error(f"Error starting pymavlink: {e}")
@@ -250,17 +273,29 @@ async def perform_action(action, altitude):
     # Perform the action
     try:
         if action == "takeoff":
-            arm_drone(master)
-            # guided_mode(master)
-            takeoff(master, altitude)
-        elif action == "land":
-            land(master)
-        elif action == "hold":
-            hold_position(master)
-        elif action == "test":
-            arm_drone(master)
-            await asyncio.sleep(4)
-            disarm_drone(master)
+            print("-- Arming")
+            await drone.action.arm()
+
+            print("-- Taking off")
+            await drone.action.takeoff()
+
+            await asyncio.sleep(10)
+
+            print("-- Landing")
+            await drone.action.land()
+
+            status_text_task.cancel()
+            # arm_drone(master)
+            # # guided_mode(master)
+            # takeoff(master, altitude)
+        # elif action == "land":
+        #     land(master)
+        # elif action == "hold":
+        #     hold_position(master)
+        # elif action == "test":
+        #     arm_drone(master)
+        #     await asyncio.sleep(4)
+        #     disarm_drone(master)
         else:
             print("Invalid action")
     except Exception as e:
@@ -268,7 +303,7 @@ async def perform_action(action, altitude):
     finally:
         # heartbeat_thread.join()
         executor.shutdown()
-        master.close()
+        # master.close()
 
 def send_heartbeat(master):
     while not stop_flag.is_set():
