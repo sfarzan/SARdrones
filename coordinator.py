@@ -162,7 +162,7 @@ def main_loop():
             # drone_comms.receive()
             current_time = time.time()
             # print("the loop %s" % (i))
-            i = i + 1
+            # i = i + 1
             if int(drone_config.mission) == 2:
                 if current_time - last_follow_setpoint_time >= follow_setpoint_interval:
                     offboard_controller.calculate_follow_setpoint()
