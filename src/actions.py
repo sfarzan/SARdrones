@@ -242,6 +242,9 @@ async def perform_action(action, altitude):
     try:
         drone = System()
         await drone.connect(system_address=f"udp://:{params.mavsdk_port}")
+        while drone.system_id is not params.hw_id:
+            await drone.disconnect()
+            await drone.connect(system_address=f"udp://:{params.mavsdk_port}")
 
         status_text_task = asyncio.ensure_future(print_status_text(drone))
 
