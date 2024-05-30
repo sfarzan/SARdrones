@@ -27,7 +27,7 @@ from geographiclib.geodesic import Geodesic
 from mavsdk import System
 from mavsdk.offboard import OffboardError, PositionNedYaw, VelocityNedYaw
 from mavsdk.server_utility import StatusTextType
-from src.offboard_controller import OffboardController
+from src.offboard_controller_test import OffboardController
 import logging
 import src.params as params
 import struct
@@ -132,7 +132,7 @@ drone_comms.start_communication()
 offboard_controller = None
 
 
-offboard_controller = OffboardController(drone_config)
+offboard_controller = OffboardController(drone_config, params)
 
 
 # Create a DroneSetup object
