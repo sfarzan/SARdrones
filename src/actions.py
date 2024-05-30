@@ -110,7 +110,7 @@ def guided_mode(master):
         master.target_component,
         mavutil.mavlink.MAV_CMD_DO_SET_MODE,
         0,
-        4,  # Mode 4: Guided mode
+        216,  # Mode 4: Guided mode
         0, 0, 0, 0, 0, 0)
 
     # Wait for the acknowledgment
