@@ -286,11 +286,13 @@ async def perform_action(action, altitude):
     # Perform the action
     try:
         if action == "takeoff":
+            # set takeoff altitude parameter
+            await drone.param.set_param_float("MIS_TAKEOFF_ALT", altitude)
             print("-- Arming")
             await drone.action.arm()
 
             print("-- Taking off")
-            await drone.action.takeoff(altitude)
+            await drone.action.takeoff()
 
             await asyncio.sleep(10)
 
