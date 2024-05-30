@@ -1,6 +1,6 @@
 import csv
 import requests
-import src.params as params_
+from src.params import Params as params_
 
 def read_swarm(self):
     """
