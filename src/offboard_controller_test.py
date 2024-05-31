@@ -227,7 +227,8 @@ class OffboardController:
         t = 0
         last_mode = 0
         last_waypoint_index = 0
-
+        asyncio.sleep(1)
+        home_position = self.global_position_telemetry
         try: 
             while t <= total_duration:
                 if self.drone_config.mission in [1, 101]:
