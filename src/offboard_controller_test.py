@@ -50,49 +50,17 @@ class OffboardController:
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                 pass
 
-    async def print_status_text(self):
-        try:
-            async for status_text in self.drone.telemetry.status_text():
-                print(f"Status: {status_text.type}: {status_text.text}")
-        except asyncio.CancelledError:
-            return
 
     async def connect(self):
-        # self.drone = System(self.mavsdk_server_address, self.port)
+        self.drone = System(self.mavsdk_server_address, self.port)
         
-        # await self.drone.connect(f'udp://:{self.upd_port}')
+        await self.drone.connect(f'udp://:{self.upd_port}')
 
-        # logging.info("Waiting for drone to connect...")
-        # async for state in self.drone.core.connection_state():
-        #     if state.is_connected:
-        #         logging.info("Drone discovered")
-        #         break
-        self.drone = System(sysid=200+self.params.hw_id)
-        await self.drone.connect(system_address=f"udp://:{self.params.mavsdk_port}")
-        drone_id_param = await self.drone.param.get_param_int("MAV_SYS_ID")
-
-        while drone_id_param != self.params.hw_id:
-            print(f"wrong id: {drone_id_param} vs {self.params.hw_id}")
-            await self.drone.connect(system_address=f"udp://:{self.params.mavsdk_port}")
-            # get the system id parameter
-            drone_id_param = await self.drone.param.get_param_int("MAV_SYS_ID")
-        print(f"sysid = {self.drone._sysid} drone_id_param = {drone_id_param}")
-
-        status_text_task = asyncio.ensure_future(self.print_status_text())
-
-        print("Waiting for drone to connect...")
+        logging.info("Waiting for drone to connect...")
         async for state in self.drone.core.connection_state():
             if state.is_connected:
-                print(f"-- Connected to drone!")
+                logging.info("Drone discovered")
                 break
-
-        print("Waiting for drone to have a global position estimate...")
-        async for health in self.drone.telemetry.health():
-            if health.is_global_position_ok and health.is_home_position_ok:
-                print("-- Global position estimate OK")
-                break
-
-
         asyncio.ensure_future(self.get_global_position_telemetry())
 
     async def set_initial_position(self):
