@@ -247,10 +247,15 @@ class OffboardController:
                 vel = self.drone_config.velocity_setpoint_NED
                 acc = [0, 0, 0]  # Assume zero acceleration
 
-                
+                # await self.global_position_telemetry = self.drone.telemetry.position()
                 
                 actual_position = self.global_position_telemetry
                 print("fail 1")
+                print(f"Drone id: {drone_id} | Global Position: {actual_position} {home_position}")
+                if actual_position is None or home_position is None:
+                    print("No position data")
+                    await asyncio.sleep(1)
+                    continue
                 local_ned_position = functions.global_to_local.global_to_local(actual_position, home_position)
                 print("fail 2")
                 current_waypoint = None
@@ -295,4 +300,8 @@ class OffboardController:
     async def get_global_position_telemetry(self):
         async for global_position in self.drone.telemetry.position():
             self.global_position_telemetry = global_position
+            pass
+    async def global_position(self):
+        async for global_position in self.drone.telemetry.position():
+            print(global_position)
             pass
