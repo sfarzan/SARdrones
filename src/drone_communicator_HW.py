@@ -138,8 +138,7 @@ class DroneCommunicator_HW:
                 position = {'lat': data.lat / 1E7, 'long': data.lon / 1E7, 'alt': data.alt / 1E7}
                 velocity = {'north': data.vx, 'east': data.vy, 'down': data.vz}
                 self.set_drone_config(hw_id, None, None, None, None, position, velocity, None, None, data.time, None)
-                print(f"GPS: {position}\n")
-                time.sleep(1)
+                print(f"Drone: {hw_id} GPS: {data}\n")
             
             # Update Yaw Values
             if msg_type == 'ATTITUDE':
