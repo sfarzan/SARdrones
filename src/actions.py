@@ -13,6 +13,7 @@ import time
 import threading
 from concurrent.futures import ThreadPoolExecutor
 import sys
+from mavsdk.follow_me import (Config, FollowMeError, TargetLocation)
 
 # stop_flag = threading.Event()
 # executor = ThreadPoolExecutor(max_workers=10)
@@ -69,6 +70,26 @@ async def print_status_text(drone):
             print(f"Status: {status_text.type}: {status_text.text}")
     except asyncio.CancelledError:
         return
+async def fake_hold(drone):
+    
+    latitude = 47.398039859999997
+    longitude = 8.5455725400000002
+    async for position in drone.telemetry.position():
+        print(f"Position: {position.latitude_deg}, {position.longitude_deg}")
+        latitude = position.latitude_deg
+        longitude = position.longitude_deg
+        await asyncio.sleep(1)
+        break
+
+    target = TargetLocation(latitude, longitude - 0.000005, 0, 0, 0, 0)
+    print("-- Starting Follow Me Mode")
+    await drone.follow_me.start()
+    await asyncio.sleep(8)
+    print("-- Following Target")
+    await drone.follow_me.set_target_location(target)
+    await asyncio.sleep(10)
+    print("-- Stopping Follow Me Mode")
+    await drone.follow_me.stop()
     
 async def perform_action(action, altitude):
     print("Starting to perform action...")
@@ -146,7 +167,7 @@ async def perform_action(action, altitude):
         elif action == "hold":
             print("-- Holding position")
             # await check_gps_fix_and_arm(drone)
-            await drone.action.hold()
+            await fake_hold()
             # status_text_task.cancel()
         else:
             print("Invalid action")
