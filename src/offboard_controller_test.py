@@ -230,6 +230,9 @@ class OffboardController:
 
         try: 
             while t <= total_duration:
+                if self.drone_config.mission in [1, 101]:
+                    break
+                
                 pos = self.drone_config.position_setpoint_NED
                 vel = self.drone_config.velocity_setpoint_NED
                 acc = [0, 0, 0]  # Assume zero acceleration
