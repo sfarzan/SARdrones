@@ -110,7 +110,7 @@ class DroneCommunicator_HW:
         if msg_type in message_types: # array of message types are at top of file
             # Ensures Drone_config object will contain position information - Also helps to filter out non-drone systems
             hw_id = data.get_srcSystem()
-            logging.debug(f"Received telemetry from Drone {hw_id}")
+            # logging.debug(f"Received telemetry from Drone {hw_id}")
 
             # Create a new instance for the drone if not present (including this drone)
             if hw_id not in self.drones and hw_id > 10 and hw_id < 100 and hw_id%10 == 4:
@@ -308,9 +308,9 @@ class DroneCommunicator_HW:
         components = text # format: msn_#_[ack] [ack] is only added if sent from a drone. ignore if from gcs
         mission_code = [int(component) for component in components if component.isdigit()][0]
         if sys_id == 4: # this will arrive multiple times. Change to idle mode once and ignore anything after that
-            print("recv new mission")
+            # print("recv new mission")
             if self.drone_config.gcs_msn != mission_code:
-                print(f"mission code: {mission_code} not same curr: {self.drone_config.mission}")
+                # print(f"mission code: {mission_code} not same curr: {self.drone_config.mission}")
                 if mission_code == Mission.SMART_SWARM.value or mission_code == Mission.DRONE_SHOW_FROM_CSV.value:
                     if self.drone_config.mission != Mission.HOLD.value:
                         self.set_drone_config(None, None, None, Mission.HOLD.value, None, None, None, None, None, None, None)
@@ -325,7 +325,7 @@ class DroneCommunicator_HW:
         elif sys_id - 1 in sys_id_list:
             if mission_code and components[2] == 'ack':
                 self.drones[sys_id - 1].gcs_msn_ack = True
-                print(f"got ack from drone {sys_id}")
+                # print(f"got ack from drone {sys_id}")
 
 
     def start_communication(self):
