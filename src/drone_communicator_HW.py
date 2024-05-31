@@ -315,13 +315,13 @@ class DroneCommunicator_HW:
                     if self.drone_config.mission != Mission.HOLD.value:
                         self.set_drone_config(None, None, None, Mission.HOLD.value, None, None, None, None, None, None, None)
                 elif self.drone_config.prev_mission != mission_code and self.drone_config.mission != Mission.LAND.value:
+                    print(f"mission code: {mission_code} set for gcs_msn")
                     self.set_drone_config(None, None, None, mission_code, None, None, None, None, None, None, None)
                 for drone_object in self.drones.values():
                     drone_object.gcs_msn = mission_code
                     drone_object.gcs_msn_ack = False
                 self.drone_config.gcs_msn_ack = True
                 self.ack_count = 0
-                print(f"mission code: {mission_code} set for gcs_msn")
                     
         elif sys_id - 1 in sys_id_list:
             if mission_code and components[2] == 'ack':
