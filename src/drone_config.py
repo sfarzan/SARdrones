@@ -111,7 +111,7 @@ class DroneConfig:
         In offline mode, it reads the swarm configuration file from the local disk.
         """
         if params_.offline_swarm:
-            return self.read_file('../swarm.csv', 'local CSV file', self.hw_id)
+            return self.read_file('swarm.csv', 'local CSV file', self.hw_id)
         else:
             print("Loading swarm configuration from online source...")
             try:
