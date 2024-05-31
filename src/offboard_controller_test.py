@@ -18,7 +18,7 @@ class OffboardController:
         self.drone_config = drone_config
         self.offboard_follow_update_interval = 0.2
         self.port = 50050 + int(self.drone_config.hw_id)
-        self.upd_port = 14550 + int(self.drone_config.hw_id)
+        self.upd_port = params.mavsdk_port
         self.mavsdk_server_address = mavsdk_server_address
         self.is_offboard = False
         self.mavsdk_server_process = None
@@ -52,9 +52,19 @@ class OffboardController:
 
 
     async def connect(self):
-        self.drone = System(self.mavsdk_server_address, self.port)
+        self.drone = System(sysid=200+self.params.hw_id)
+        await self.drone.connect(system_address=f"udp://:{self.params.mavsdk_port}")
+        drone_id_param = await self.drone.param.get_param_int("MAV_SYS_ID")
+
+        while drone_id_param != self.params.hw_id:
+            print(f"wrong id: {drone_id_param} vs {self.params.hw_id}")
+            await self.drone.connect(system_address=f"udp://:{self.params.mavsdk_port}")
+            # get the system id parameter
+            drone_id_param = await self.drone.param.get_param_int("MAV_SYS_ID")
+        print(f"sysid = {self.drone._sysid} drone_id_param = {drone_id_param}")
         
-        await self.drone.connect(f'udp://:{self.upd_port}')
+        # self.drone = System(sysid=200 + self.params.hw_id)
+        # await self.drone.connect(f'udp://:{self.upd_port}')
 
         logging.info("Waiting for drone to connect...")
         async for state in self.drone.core.connection_state():
@@ -221,7 +231,7 @@ class OffboardController:
                 waypoints.append((t, px, py, pz, vx, vy, vz, ax, ay, az,yaw, mode_code))
         return waypoints
 
-    async def perform_trajectory(self, drone_id, drone, waypoints, home_position,home_position_NED):
+    async def perform_trajectory(self, drone_id, drone, waypoints, home_position, home_position_NED):
         print(f"-- Performing trajectory {drone_id}")
         total_duration = waypoints[-1][0]
         t = 0
@@ -231,19 +241,24 @@ class OffboardController:
         home_position = self.global_position_telemetry
         try: 
             while t <= total_duration:
-                if self.drone_config.mission in [1, 101]:
+                if self.drone_config.mission > 3:
                     break
                 
                 pos = self.drone_config.position_setpoint_NED
                 vel = self.drone_config.velocity_setpoint_NED
                 acc = [0, 0, 0]  # Assume zero acceleration
 
-                
+                # await self.global_position_telemetry = self.drone.telemetry.position()
                 
                 actual_position = self.global_position_telemetry
-
+                print("fail 1")
+                print(f"Drone id: {drone_id} | Global Position: {actual_position} {home_position}")
+                if actual_position is None or home_position is None:
+                    print("No position data")
+                    await asyncio.sleep(1)
+                    continue
                 local_ned_position = functions.global_to_local.global_to_local(actual_position, home_position)
-                
+                print("fail 2")
                 current_waypoint = None
                 for i in range(last_waypoint_index, len(waypoints)):
                     if t <= waypoints[i][0]:
@@ -264,7 +279,7 @@ class OffboardController:
                 if last_mode != mode_code:
                     print(f"Drone id: {drone_id+1}: Mode number: {mode_code}")
                     last_mode = mode_code
-                        
+                print("fail 3")
                 await drone.offboard.set_position_velocity_acceleration_ned(
                     PositionNedYaw(*position, yaw),
                     VelocityNedYaw(*velocity, yaw),
@@ -286,4 +301,8 @@ class OffboardController:
     async def get_global_position_telemetry(self):
         async for global_position in self.drone.telemetry.position():
             self.global_position_telemetry = global_position
+            pass
+    async def global_position(self):
+        async for global_position in self.drone.telemetry.position():
+            print(global_position)
             pass

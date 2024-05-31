@@ -130,7 +130,7 @@ class DroneCommunicator_HW:
                     self.set_drone_config(None, None, None, None, None, None, None, None, None, None, split_string[1])
                     print(f"rssi being updated through status message {split_string[1]}")
                 elif split_string[0] == 'msn':
-                    print(f"{data.text} from {hw_id}")
+                    # print(f"{data.text} from {hw_id}")
                     self.decode_status_text(split_string, hw_id)
 
             # Update Position and Velocity Values
@@ -310,11 +310,12 @@ class DroneCommunicator_HW:
         if sys_id == 4: # this will arrive multiple times. Change to idle mode once and ignore anything after that
             # print("recv new mission")
             if self.drone_config.gcs_msn != mission_code:
-                # print(f"mission code: {mission_code} not same curr: {self.drone_config.mission}")
+                print(f"mission code: {mission_code} not same curr: {self.drone_config.mission}")
                 if mission_code == Mission.SMART_SWARM.value or mission_code == Mission.DRONE_SHOW_FROM_CSV.value:
                     if self.drone_config.mission != Mission.HOLD.value:
                         self.set_drone_config(None, None, None, Mission.HOLD.value, None, None, None, None, None, None, None)
                 elif self.drone_config.prev_mission != mission_code and self.drone_config.mission != Mission.LAND.value:
+                    print(f"mission code: {mission_code} set for gcs_msn")
                     self.set_drone_config(None, None, None, mission_code, None, None, None, None, None, None, None)
                 for drone_object in self.drones.values():
                     drone_object.gcs_msn = mission_code
@@ -351,7 +352,7 @@ class DroneCommunicator_HW:
                     return False
         # print("All drones have acked")
         if self.drone_config.mission != self.drone_config.gcs_msn and self.drone_config.prev_mission != self.drone_config.gcs_msn and self.drone_config.mission != Mission.LAND.value:
-            logging.info(f"Changing to mission from gcs: {self.drone_config.gcs_msn}") # mainly for swarm and csv
+            print(f"Changing to mission from gcs: {self.drone_config.gcs_msn}") # mainly for swarm and csv
             self.drone_config.state = 1
             self.drone_config.mission = self.drone_config.gcs_msn
         return True

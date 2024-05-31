@@ -107,7 +107,7 @@ class DroneSetup:
         
         # If the mission is to land
         elif self.drone_config.mission == 101:
-            logging.info("Starting Land")
+            print("Starting Land")
             if int(self.drone_config.swarm.get('follow')) != 0 and self.offboard_controller:  # Check if it's a follower
                 if self.offboard_controller.is_offboard:  # Check if it's in offboard mode
                     logging.info("Is in Offboard mode. Attempting to stop offboard.")
