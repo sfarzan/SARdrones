@@ -231,7 +231,7 @@ class OffboardController:
                 waypoints.append((t, px, py, pz, vx, vy, vz, ax, ay, az,yaw, mode_code))
         return waypoints
 
-    async def perform_trajectory(self, drone_id, drone, waypoints, home_position,home_position_NED):
+    async def perform_trajectory(self, drone_id, drone, waypoints, home_position, home_position_NED):
         print(f"-- Performing trajectory {drone_id}")
         total_duration = waypoints[-1][0]
         t = 0
@@ -250,9 +250,9 @@ class OffboardController:
                 
                 
                 actual_position = self.global_position_telemetry
-
+                print("fail 1")
                 local_ned_position = functions.global_to_local.global_to_local(actual_position, home_position)
-                
+                print("fail 2")
                 current_waypoint = None
                 for i in range(last_waypoint_index, len(waypoints)):
                     if t <= waypoints[i][0]:
@@ -273,7 +273,7 @@ class OffboardController:
                 if last_mode != mode_code:
                     print(f"Drone id: {drone_id+1}: Mode number: {mode_code}")
                     last_mode = mode_code
-                        
+                print("fail 3")
                 await drone.offboard.set_position_velocity_acceleration_ned(
                     PositionNedYaw(*position, yaw),
                     VelocityNedYaw(*velocity, yaw),
