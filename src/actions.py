@@ -167,7 +167,7 @@ async def perform_action(action, altitude):
         elif action == "hold":
             print("-- Holding position")
             # await check_gps_fix_and_arm(drone)
-            await fake_hold()
+            await fake_hold(drone)
             # status_text_task.cancel()
         else:
             print("Invalid action")
