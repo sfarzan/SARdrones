@@ -123,11 +123,11 @@ async def perform_action(action, altitude):
                 print(f"-- Connected to drone!")
                 break
 
-        print("Waiting for drone to have a global position estimate...")
-        async for health in drone.telemetry.health():
-            if health.is_global_position_ok and health.is_home_position_ok:
-                print("-- Global position estimate OK")
-                break
+        # print("Waiting for drone to have a global position estimate...")
+        # async for health in drone.telemetry.health():
+        #     if health.is_global_position_ok and health.is_home_position_ok:
+        #         print("-- Global position estimate OK")
+        #         break
         # Init Mavlink Connection
         # master = mavutil.mavlink_connection(f'udp:localhost:{params.mavsdk_port}', source_system=params.hw_id + 1)
         
