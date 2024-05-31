@@ -52,9 +52,19 @@ class OffboardController:
 
 
     async def connect(self):
-        self.drone = System(sysid=200 + self.params.hw_id)
+        self.drone = System(sysid=200+self.params.hw_id)
+        await self.drone.connect(system_address=f"udp://:{self.params.mavsdk_port}")
+        drone_id_param = await self.drone.param.get_param_int("MAV_SYS_ID")
+
+        while drone_id_param != self.params.hw_id:
+            print(f"wrong id: {drone_id_param} vs {self.params.hw_id}")
+            await self.drone.connect(system_address=f"udp://:{self.params.mavsdk_port}")
+            # get the system id parameter
+            drone_id_param = await self.drone.param.get_param_int("MAV_SYS_ID")
+        print(f"sysid = {self.drone._sysid} drone_id_param = {drone_id_param}")
         
-        await self.drone.connect(f'udp://:{self.upd_port}')
+        # self.drone = System(sysid=200 + self.params.hw_id)
+        # await self.drone.connect(f'udp://:{self.upd_port}')
 
         logging.info("Waiting for drone to connect...")
         async for state in self.drone.core.connection_state():
