@@ -18,7 +18,7 @@ class OffboardController:
         self.drone_config = drone_config
         self.offboard_follow_update_interval = 0.2
         self.port = 50050 + int(self.drone_config.hw_id)
-        self.upd_port = 14550 + int(self.drone_config.hw_id)
+        self.upd_port = params.mavsdk_port
         self.mavsdk_server_address = mavsdk_server_address
         self.is_offboard = False
         self.mavsdk_server_process = None
@@ -52,7 +52,7 @@ class OffboardController:
 
 
     async def connect(self):
-        self.drone = System(self.mavsdk_server_address, self.port)
+        self.drone = System(sysid=200 + self.params.hw_id)
         
         await self.drone.connect(f'udp://:{self.upd_port}')
 
