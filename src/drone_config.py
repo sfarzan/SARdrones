@@ -81,7 +81,7 @@ class DroneConfig:
 
     def read_config(self):
         if params_.offline_config:
-            return self.read_file('../config.csv', 'local CSV file', self.hw_id)
+            return self.read_file('config.csv', 'local CSV file', self.hw_id)
         else:
             print("Loading configuration from online source...")
             try:
